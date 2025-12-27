@@ -3,10 +3,11 @@
 I want to look at a github repository and take a PR merged within a date range and identify which ones are outliers in terms of PR reviews review time and qualitative reviews.
 
 - I would like to be able to do this using Python as my coding language.
-I would like to use UV as my module dependency manager.
-I want to use ruff as my python linter
-I want to use mypy as the static type checker
-
+- I would like to use UV as my module dependency manager.
+- I want to use ruff as my python linter
+- I want to use mypy as the static type checker
+- I want to use github actions as my CI/CD pipeline
+- I want to run ruff and mypy as part of the CI/CD pipeline as a pre-commit hook and for each PR raised
 I want to be able to 
 - classify PRs that were merged within a certain date range
 - classify as outlier reviews
