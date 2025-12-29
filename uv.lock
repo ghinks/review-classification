@@ -285,7 +285,7 @@ wheels = [
 [[package]]
 name = "review-classification"
 version = "0.2.3"
-source = { editable = "." }
+source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
