@@ -32,10 +32,11 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 
 [build-system]
-requires = ["uv>=0.1.0"]
-build-backend = "uv"
+requires = ["uv_build>=0.9.18,<0.10.0"]
+build-backend = "uv_build"
 
-
+[tool.uv.extra-build-dependencies]
+review_classification = ["uv"]
 
 [project.scripts]
 review-classify = "review_classification.main:main"
