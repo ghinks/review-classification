@@ -1,5 +1,11 @@
+"""Main entry point for review-classification CLI."""
+
+from .cli import app
+
+
 def main() -> None:
-    print("Hello from review-classification!")
+    """Run the CLI application."""
+    app()
 
 
 if __name__ == "__main__":
