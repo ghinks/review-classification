@@ -1,6 +1,7 @@
 """Tests for GitHub repository parser."""
 
 import pytest
+
 from review_classification.cli.parser import GitHubRepo
 
 
