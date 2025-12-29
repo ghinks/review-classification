@@ -33,5 +33,8 @@ disallow_untyped_defs = true
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/review_classification"]
+
 [project.scripts]
 review-classify = "review_classification.main:main"
