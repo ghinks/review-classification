@@ -18,6 +18,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version-file: "pyproject.toml"
+      - name: Install dependencies
+        run: uv sync
       - name: Lint with Ruff
         run: uv run ruff check .
       - name: Type check with Mypy
