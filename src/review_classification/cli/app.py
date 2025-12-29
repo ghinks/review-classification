@@ -9,7 +9,7 @@ from .parser import GitHubRepo
 app = typer.Typer(help="Identify PR review outliers in GitHub repositories")
 
 
-@app.command()  # type: ignore[misc]
+@app.command()
 def classify(
     repository: Annotated[
         str, typer.Argument(help="GitHub repository (owner/repo or URL)")
