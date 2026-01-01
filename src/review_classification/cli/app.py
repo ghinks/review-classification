@@ -43,8 +43,31 @@ def classify(
 
         typer.echo(f"Analyzing {repo.owner}/{repo.name}...")
 
-        # TODO: Implement PR analysis logic
-        typer.echo("Analysis not yet implemented - coming soon!")
+        # Initialize DB
+        from ..sqlite.database import init_db, save_pr
+
+        init_db()
+
+        # Fetch PRs
+        # Ensure we have a token
+        import os
+
+        from ..queries.github_client import fetch_prs
+
+        if not os.getenv("GITHUB_TOKEN"):
+            typer.echo(
+                "Warning: GITHUB_TOKEN not set. API rate limits will be very low.",
+                err=True,
+            )
+
+        prs = fetch_prs(f"{repo.owner}/{repo.name}", start_date, end_date)
+
+        # Save to DB
+        typer.echo(f"Saving {len(prs)} PRs to database...")
+        for pr in prs:
+            save_pr(pr)
+
+        typer.echo(f"Successfully saved {len(prs)} PRs.")
 
     except ValueError as e:
         typer.echo(f"Error: {e}", err=True)
