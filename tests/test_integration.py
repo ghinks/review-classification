@@ -5,8 +5,8 @@ import subprocess
 import pytest
 
 
-@pytest.mark.integration  # type: ignore
-@pytest.mark.timeout(300)  # type: ignore
+@pytest.mark.integration
+@pytest.mark.timeout(300)
 def test_review_classify_integration() -> None:
     """
     Integration test that runs the full CLI command against a real repo.
