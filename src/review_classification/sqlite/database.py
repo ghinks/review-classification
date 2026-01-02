@@ -1,4 +1,4 @@
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine, delete, select
 
 from .models import PullRequest
 
@@ -57,3 +57,11 @@ def save_pr(pr_data: PullRequest) -> PullRequest:
             session.commit()
             session.refresh(pr_data)
             return pr_data
+
+
+def delete_all_prs() -> None:
+    """Delete all Pull Request records from the database."""
+    with Session(engine) as session:
+        statement = delete(PullRequest)
+        session.exec(statement)
+        session.commit()
