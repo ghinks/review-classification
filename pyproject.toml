@@ -17,6 +17,7 @@ dev = [
     "pre-commit>=4.5.1",
     "pytest>=9.0.2",
     "ruff>=0.14.10",
+    "pytest-timeout>=2.2.0",
 ]
 
 [tool.ruff]
@@ -33,6 +34,11 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.18,<0.10.0"]
