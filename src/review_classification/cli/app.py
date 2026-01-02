@@ -22,6 +22,10 @@ def classify(
         str | None,
         typer.Option("--end", "-e", help="End date for PR range (YYYY-MM-DD)"),
     ] = None,
+    reset_db: Annotated[
+        bool,
+        typer.Option("--reset-db", help="Delete all existing data before fetching"),
+    ] = False,
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Enable verbose output")
     ] = False,
@@ -44,9 +48,15 @@ def classify(
         typer.echo(f"Analyzing {repo.owner}/{repo.name}...")
 
         # Initialize DB
-        from ..sqlite.database import init_db, save_pr
+        from ..sqlite.database import delete_all_prs, init_db, save_pr
 
         init_db()
+
+        if reset_db:
+            if verbose:
+                typer.echo("Resetting database...")
+            delete_all_prs()
+            typer.echo("Database reset complete.")
 
         # Fetch PRs
         # Ensure we have a token
