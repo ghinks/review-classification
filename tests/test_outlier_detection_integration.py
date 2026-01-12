@@ -1,8 +1,10 @@
 """Integration tests for outlier detection."""
 
+from collections.abc import Generator
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy.engine import Engine
 from sqlmodel import Session, create_engine
 
 from review_classification.analysis.outlier_detector import (
@@ -15,7 +17,7 @@ from review_classification.sqlite.models import PROutlierScore, PullRequest
 
 
 @pytest.fixture
-def test_engine():
+def test_engine() -> Engine:
     """Create a test database engine using an in-memory SQLite database."""
     from sqlmodel import SQLModel
 
@@ -25,7 +27,7 @@ def test_engine():
 
 
 @pytest.fixture
-def test_session(test_engine):
+def test_session(test_engine: Engine) -> Generator[Session, None, None]:
     """Create a test database session."""
     with Session(test_engine) as session:
         yield session

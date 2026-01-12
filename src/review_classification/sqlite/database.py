@@ -128,6 +128,8 @@ def get_outlier_scores(
         if outliers_only:
             statement = statement.where(PROutlierScore.is_outlier == True)  # noqa: E712
 
-        statement = statement.order_by(PROutlierScore.max_abs_z_score.desc())
+        statement = statement.order_by(
+            PROutlierScore.max_abs_z_score.desc()  # type: ignore[union-attr]
+        )
 
         return list(session.exec(statement).all())
