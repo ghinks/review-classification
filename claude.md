@@ -29,6 +29,6 @@ I want to be able to
 - It could be a PR that has code changes but no unit tests.
 - I would like to automatically identify outliers base on the criteria available from the PR review data in github.
 
-## Things I need to do
-- identify what features the PR has that I want to use for classification
-- identify what classification modelling tools I would want to use
+
+## Z Score Calculation
+- I would like to use z score calculation to identify outliers.
