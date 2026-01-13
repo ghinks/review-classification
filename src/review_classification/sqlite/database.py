@@ -1,6 +1,6 @@
 from sqlmodel import Session, SQLModel, create_engine, delete, select
 
-from .models import PullRequest
+from .models import PRFeatures, PROutlierScore, PullRequest
 
 # Use a local file database
 sqlite_file_name = "review_classification.db"
@@ -65,3 +65,71 @@ def delete_all_prs() -> None:
         statement = delete(PullRequest)
         session.exec(statement)
         session.commit()
+
+
+def save_pr_features(features: PRFeatures) -> PRFeatures:
+    """Save or update PR features in the database.
+
+    If features for the same pull_request_id exist, they are updated.
+    """
+    with Session(engine) as session:
+        statement = select(PRFeatures).where(
+            PRFeatures.pull_request_id == features.pull_request_id
+        )
+        existing = session.exec(statement).first()
+
+        if existing:
+            # Update existing
+            for key, value in features.model_dump(exclude={"id"}).items():
+                setattr(existing, key, value)
+            session.add(existing)
+            session.commit()
+            session.refresh(existing)
+            return existing
+        else:
+            # Create new
+            session.add(features)
+            session.commit()
+            session.refresh(features)
+            return features
+
+
+def get_pr_features(pr_id: int) -> PRFeatures | None:
+    """Get features for a specific PR.
+
+    Args:
+        pr_id: The PullRequest id
+
+    Returns:
+        PRFeatures if found, None otherwise
+    """
+    with Session(engine) as session:
+        statement = select(PRFeatures).where(PRFeatures.pull_request_id == pr_id)
+        return session.exec(statement).first()
+
+
+def get_outlier_scores(
+    repository_name: str, outliers_only: bool = True
+) -> list[PROutlierScore]:
+    """Get outlier scores for a repository.
+
+    Args:
+        repository_name: Repository to query
+        outliers_only: If True, only return PRs flagged as outliers
+
+    Returns:
+        List of PROutlierScore ordered by max_abs_z_score descending
+    """
+    with Session(engine) as session:
+        statement = select(PROutlierScore).where(
+            PROutlierScore.repository_name == repository_name
+        )
+
+        if outliers_only:
+            statement = statement.where(PROutlierScore.is_outlier == True)  # noqa: E712
+
+        statement = statement.order_by(
+            PROutlierScore.max_abs_z_score.desc()  # type: ignore[union-attr]
+        )
+
+        return list(session.exec(statement).all())
