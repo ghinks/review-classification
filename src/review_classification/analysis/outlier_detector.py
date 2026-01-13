@@ -2,6 +2,7 @@
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 
 from sqlmodel import Session, select
 
@@ -20,6 +21,9 @@ class OutlierResult:
 
     pr_id: int
     pr_number: int
+    title: str
+    author: str
+    merged_at: datetime | None
     is_outlier: bool
     outlier_features: list[str]
     max_abs_z_score: float
@@ -186,6 +190,9 @@ def detect_outliers_for_pr(
     return OutlierResult(
         pr_id=pr.id if pr.id is not None else 0,
         pr_number=pr.number,
+        title=pr.title,
+        author=pr.author,
+        merged_at=pr.merged_at,
         is_outlier=is_outlier_pr,
         outlier_features=outlier_features,
         max_abs_z_score=max_abs_z,
