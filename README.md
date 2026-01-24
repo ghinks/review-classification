@@ -46,6 +46,8 @@ The `classify` command fetches PR data from a repository and stores it locally.
 # Fetch all PRs
 uv run review-classify classify owner/repo
 
+(default start date is 30 days ago)
+
 # Fetch PRs within a specific date range
 uv run review-classify classify owner/repo --start 2023-01-01 --end 2023-12-31
 
