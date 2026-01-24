@@ -1,5 +1,6 @@
 """Typer CLI application for review-classification."""
 
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import typer
@@ -37,6 +38,10 @@ def classify(
     """
     try:
         repo = GitHubRepo.from_string(repository)
+
+        if not start_date:
+            # Default to 30 days ago
+            start_date = (datetime.now(UTC) - timedelta(days=30)).strftime("%Y-%m-%d")
 
         if verbose:
             typer.echo(f"Repository: {repo.owner}/{repo.name}")
