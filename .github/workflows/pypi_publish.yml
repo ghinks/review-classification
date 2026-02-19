@@ -1,16 +1,25 @@
-name: Publish to TestPyPI
+name: Publish to PyPI
 
 on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Publish target'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - production
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     environment:
-      name: testpypi
-      url: https://test.pypi.org/p/review-classification
+      name: ${{ (inputs.target == 'production' || github.event_name == 'release') && 'pypi' || 'testpypi' }}
+      url: ${{ (inputs.target == 'production' || github.event_name == 'release') && 'https://pypi.org/p/review-classification' || 'https://test.pypi.org/p/review-classification' }}
     permissions:
       id-token: write
       contents: write  # Required to push version bump commit
@@ -41,7 +50,12 @@ jobs:
         run: uv build
 
       - name: Publish to TestPyPI
+        if: inputs.target == 'test' && github.event_name == 'workflow_dispatch'
         run: uv publish --publish-url https://test.pypi.org/legacy/ --token ${{ secrets.UV_PUBLISH_TOKEN_TEST }}
+
+      - name: Publish to PyPI
+        if: inputs.target == 'production' || github.event_name == 'release'
+        run: uv publish --token ${{ secrets.UV_PUBLISH_TOKEN }}
 
       - name: Commit Patch Bump
         run: |
