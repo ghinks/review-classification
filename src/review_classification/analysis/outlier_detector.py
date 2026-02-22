@@ -60,9 +60,9 @@ def calculate_repository_statistics(
     )
 
     if stats_start:
-        statement = statement.where(PullRequest.merged_at >= stats_start)
+        statement = statement.where(PullRequest.merged_at >= stats_start)  # type: ignore[operator]
     if stats_end:
-        statement = statement.where(PullRequest.merged_at <= stats_end)
+        statement = statement.where(PullRequest.merged_at <= stats_end)  # type: ignore[operator]
 
     prs = list(session.exec(statement).all())
 
@@ -253,9 +253,9 @@ def detect_outliers_for_repository(
     )
 
     if classify_end:
-        statement = statement.where(PullRequest.merged_at > classify_end)
+        statement = statement.where(PullRequest.merged_at > classify_end)  # type: ignore[operator]
     elif classify_start:
-        statement = statement.where(PullRequest.merged_at >= classify_start)
+        statement = statement.where(PullRequest.merged_at >= classify_start)  # type: ignore[operator]
 
     prs = list(session.exec(statement).all())
 
