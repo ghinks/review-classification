@@ -34,6 +34,8 @@ def calculate_repository_statistics(
     session: Session,
     repository_name: str,
     min_sample_size: int = 30,
+    stats_start: datetime | None = None,
+    stats_end: datetime | None = None,
 ) -> tuple[dict[str, dict[str, float]], int]:
     """Calculate statistics for all metrics in a repository.
 
@@ -41,6 +43,8 @@ def calculate_repository_statistics(
         session: Database session
         repository_name: Repository to analyze
         min_sample_size: Minimum PRs needed for analysis
+        stats_start: Only include PRs merged on or after this date in statistics
+        stats_end: Only include PRs merged on or before this date in statistics
 
     Returns:
         Tuple of (metric_stats, sample_count) where metric_stats is a dict
@@ -49,11 +53,17 @@ def calculate_repository_statistics(
     Raises:
         InsufficientDataError: If repository has insufficient merged PRs
     """
-    # Fetch all merged PRs for this repository
+    # Fetch merged PRs for this repository, optionally restricted to a date range
     statement = select(PullRequest).where(
         PullRequest.repository_name == repository_name,
         PullRequest.merged_at.is_not(None),  # type: ignore[union-attr]
     )
+
+    if stats_start:
+        statement = statement.where(PullRequest.merged_at >= stats_start)
+    if stats_end:
+        statement = statement.where(PullRequest.merged_at <= stats_end)
+
     prs = list(session.exec(statement).all())
 
     if len(prs) < min_sample_size:
@@ -205,6 +215,8 @@ def detect_outliers_for_repository(
     repository_name: str,
     min_sample_size: int = 30,
     threshold: float = 2.0,
+    classify_start: datetime | None = None,
+    classify_end: datetime | None = None,
 ) -> list[OutlierResult]:
     """Detect outliers for all PRs in a repository.
 
@@ -213,6 +225,11 @@ def detect_outliers_for_repository(
         repository_name: Repository to analyze
         min_sample_size: Minimum PRs needed for analysis
         threshold: Z-score threshold for outlier detection
+        classify_start: Start of the baseline measurement window used to compute
+            statistics. PRs merged before this date are excluded from the baseline.
+        classify_end: End of the baseline measurement window. PRs merged after this
+            date are the ones evaluated for outliers. PRs within
+            [classify_start, classify_end] form the baseline.
 
     Returns:
         List of OutlierResult for each PR
@@ -220,16 +237,26 @@ def detect_outliers_for_repository(
     Raises:
         InsufficientDataError: If repository has insufficient data
     """
-    # Calculate repository statistics
+    # Calculate baseline statistics from PRs within the classification window
     stats, _ = calculate_repository_statistics(
-        session, repository_name, min_sample_size
+        session,
+        repository_name,
+        min_sample_size,
+        stats_start=classify_start,
+        stats_end=classify_end,
     )
 
-    # Fetch all PRs and features
+    # Fetch PRs to evaluate: those after the classification window
     statement = select(PullRequest).where(
         PullRequest.repository_name == repository_name,
         PullRequest.merged_at.is_not(None),  # type: ignore[union-attr]
     )
+
+    if classify_end:
+        statement = statement.where(PullRequest.merged_at > classify_end)
+    elif classify_start:
+        statement = statement.where(PullRequest.merged_at >= classify_start)
+
     prs = list(session.exec(statement).all())
 
     pr_ids = [pr.id for pr in prs if pr.id is not None]
