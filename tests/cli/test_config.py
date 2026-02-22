@@ -1,5 +1,7 @@
 """Tests for the multi-repository TOML config parser."""
 
+from pathlib import Path
+
 import pytest
 
 from review_classification.cli.config import (
@@ -13,7 +15,7 @@ from review_classification.cli.config import (
 # ---------------------------------------------------------------------------
 
 
-def _write_toml(tmp_path, content: str):
+def _write_toml(tmp_path: Path, content: str) -> Path:
     """Write a TOML file and return its Path."""
     p = tmp_path / "repos.toml"
     p.write_text(content, encoding="utf-8")
@@ -25,7 +27,7 @@ def _write_toml(tmp_path, content: str):
 # ---------------------------------------------------------------------------
 
 
-def test_minimal_config(tmp_path) -> None:
+def test_minimal_config(tmp_path: Path) -> None:
     """A config with only a repository name is valid."""
     cfg_path = _write_toml(
         tmp_path,
@@ -39,7 +41,7 @@ name = "owner/repo"
     assert cfg.repositories[0].name == "owner/repo"
 
 
-def test_multiple_repositories(tmp_path) -> None:
+def test_multiple_repositories(tmp_path: Path) -> None:
     """Multiple [[repositories]] entries are all parsed."""
     cfg_path = _write_toml(
         tmp_path,
@@ -57,7 +59,7 @@ name = "owner/repo-b"
     assert cfg.repositories[1].name == "owner/repo-b"
 
 
-def test_global_defaults_parsed(tmp_path) -> None:
+def test_global_defaults_parsed(tmp_path: Path) -> None:
     """[defaults] values are read into MultiRepoConfig."""
     cfg_path = _write_toml(
         tmp_path,
@@ -83,7 +85,7 @@ name = "owner/repo"
     assert cfg.classify_end == "2024-06-30"
 
 
-def test_per_repo_overrides_parsed(tmp_path) -> None:
+def test_per_repo_overrides_parsed(tmp_path: Path) -> None:
     """Per-repository fields are stored on the RepoConfig."""
     cfg_path = _write_toml(
         tmp_path,
@@ -167,18 +169,18 @@ def test_resolve_both_none_stays_none() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_missing_file_raises_file_not_found(tmp_path) -> None:
+def test_missing_file_raises_file_not_found(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="Config file not found"):
         parse_config_file(tmp_path / "nonexistent.toml")
 
 
-def test_invalid_toml_raises_value_error(tmp_path) -> None:
+def test_invalid_toml_raises_value_error(tmp_path: Path) -> None:
     cfg_path = _write_toml(tmp_path, "this is not [ valid toml !!!")
     with pytest.raises(ValueError, match="Invalid TOML"):
         parse_config_file(cfg_path)
 
 
-def test_empty_repositories_raises_value_error(tmp_path) -> None:
+def test_empty_repositories_raises_value_error(tmp_path: Path) -> None:
     """A config with no [[repositories]] entries is rejected."""
     cfg_path = _write_toml(
         tmp_path,
@@ -191,7 +193,7 @@ start = "2024-01-01"
         parse_config_file(cfg_path)
 
 
-def test_repository_missing_name_raises_value_error(tmp_path) -> None:
+def test_repository_missing_name_raises_value_error(tmp_path: Path) -> None:
     """A [[repositories]] entry without a 'name' field is rejected."""
     cfg_path = _write_toml(
         tmp_path,
@@ -204,7 +206,7 @@ start = "2024-01-01"
         parse_config_file(cfg_path)
 
 
-def test_invalid_threshold_type_raises_value_error(tmp_path) -> None:
+def test_invalid_threshold_type_raises_value_error(tmp_path: Path) -> None:
     """A non-numeric threshold value is rejected."""
     cfg_path = _write_toml(
         tmp_path,
