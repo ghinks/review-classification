@@ -11,7 +11,7 @@ app = typer.Typer(help="Identify PR review outliers in GitHub repositories")
 
 
 @app.command()
-def classify(
+def fetch(
     repository: Annotated[
         str, typer.Argument(help="GitHub repository (owner/repo or URL)")
     ],
@@ -31,10 +31,10 @@ def classify(
         bool, typer.Option("--verbose", "-v", help="Enable verbose output")
     ] = False,
 ) -> None:
-    """Classify PR review outliers in a GitHub repository.
+    """Fetch PR data from a GitHub repository and store it locally.
 
-    Analyzes pull requests merged within the specified date range and identifies
-    outliers based on review time, number of reviews, and qualitative metrics.
+    Retrieves pull requests merged within the specified date range and saves
+    them to a local SQLite database for subsequent outlier analysis.
     """
     try:
         repo = GitHubRepo.from_string(repository)
@@ -109,6 +109,26 @@ def detect_outliers(
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Enable verbose output")
     ] = False,
+    classify_start: Annotated[
+        str | None,
+        typer.Option(
+            "--classify-start",
+            help=(
+                "Start of the baseline measurement window (YYYY-MM-DD). "
+                "PRs after --classify-end are evaluated for outliers."
+            ),
+        ),
+    ] = None,
+    classify_end: Annotated[
+        str | None,
+        typer.Option(
+            "--classify-end",
+            help=(
+                "End of the baseline measurement window (YYYY-MM-DD). "
+                "PRs merged after this date are evaluated for outliers."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Detect PR review outliers using z-score analysis.
 
@@ -116,16 +136,32 @@ def detect_outliers(
     - Raw metrics: additions, deletions, changed_files, comments, review_comments
     - Engineered features: review_duration, code_churn, comment_density
 
-    Requires repository data to be fetched first using the 'classify' command.
+    Requires repository data to be fetched first using the 'fetch' command.
     """
     try:
         repo = GitHubRepo.from_string(repository)
         repo_name = f"{repo.owner}/{repo.name}"
 
+        classify_start_dt: datetime | None = None
+        classify_end_dt: datetime | None = None
+
+        if classify_start:
+            classify_start_dt = datetime.strptime(classify_start, "%Y-%m-%d").replace(
+                tzinfo=UTC
+            )
+        if classify_end:
+            classify_end_dt = datetime.strptime(classify_end, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59, tzinfo=UTC
+            )
+
         if verbose:
             typer.echo(f"Analyzing outliers for {repo_name}...")
             typer.echo(f"Z-score threshold: {threshold}")
             typer.echo(f"Minimum sample size: {min_samples}")
+            if classify_start_dt or classify_end_dt:
+                start_label = classify_start or "unbounded"
+                end_label = classify_end or "unbounded"
+                typer.echo(f"Classification window: {start_label} to {end_label}")
 
         from sqlmodel import select
 
@@ -155,7 +191,7 @@ def detect_outliers(
 
             if len(prs) == 0:
                 typer.echo(
-                    f"No PRs found for {repo_name}. Run 'classify' command first.",
+                    f"No PRs found for {repo_name}. Run 'fetch' command first.",
                     err=True,
                 )
                 raise typer.Exit(code=1)
@@ -173,12 +209,21 @@ def detect_outliers(
                 typer.echo("Detecting outliers...")
 
             results = detect_outliers_for_repository(
-                session, repo_name, min_samples, threshold
+                session,
+                repo_name,
+                min_samples,
+                threshold,
+                classify_start=classify_start_dt,
+                classify_end=classify_end_dt,
             )
 
-            # Get sample size for metadata
+            # Get sample size for metadata (baseline PRs within classification window)
             _, sample_size = calculate_repository_statistics(
-                session, repo_name, min_samples
+                session,
+                repo_name,
+                min_samples,
+                stats_start=classify_start_dt,
+                stats_end=classify_end_dt,
             )
 
             # Step 3: Save results
