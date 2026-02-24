@@ -11,12 +11,31 @@ A CLI tool to identify pull request outliers in GitHub repositories using Z-scor
 
 ## Installation
 
+### Homebrew (macOS / Linux)
+
+The easiest way to install on macOS (or Linux with Homebrew) is via the project tap:
+
+```bash
+brew tap ghinks/review-classification https://github.com/ghinks/review-classification
+brew install review-classification
+```
+
+After installation the `review-classify` command is on your `PATH`.
+
+### From source with uv
+
 **Prerequisites**: Python 3.12+, [uv](https://github.com/astral-sh/uv)
 
 ```bash
 git clone https://github.com/ghinks/review-classification.git
 cd review-classification
 uv sync
+```
+
+### From PyPI with pipx
+
+```bash
+pipx install review-classification
 ```
 
 ## Usage
