@@ -13,14 +13,13 @@ A CLI tool to identify pull request outliers in GitHub repositories using Z-scor
 
 ### Homebrew (macOS / Linux)
 
-The easiest way to install on macOS (or Linux with Homebrew) is via the project tap:
+Install via the project's dedicated [Homebrew tap](https://github.com/ghinks/homebrew-review-classification):
 
 ```bash
-brew tap ghinks/review-classification https://github.com/ghinks/review-classification
-brew install review-classification
+brew install ghinks/review-classification
 ```
 
-After installation the `review-classify` command is on your `PATH`.
+Homebrew automatically taps `ghinks/review-classification` and installs the formula in one step. After installation the `review-classify` command is on your `PATH`.
 
 ### From source with uv
 

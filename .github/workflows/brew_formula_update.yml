@@ -57,3 +57,23 @@ jobs:
           git diff --staged --quiet || \
             git commit -m "chore: update Homebrew formula to v${{ steps.version.outputs.version }} [skip ci]"
           git push
+
+      - name: Push formula to homebrew tap repository
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          git clone \
+            "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/ghinks/homebrew-review-classification.git" \
+            /tmp/homebrew-tap
+
+          mkdir -p /tmp/homebrew-tap/Formula
+          cp HomebrewFormula/review-classification.rb \
+            /tmp/homebrew-tap/Formula/review-classification.rb
+
+          cd /tmp/homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/review-classification.rb
+          git diff --staged --quiet || \
+            git commit -m "chore: update formula to v${{ steps.version.outputs.version }}"
+          git push
