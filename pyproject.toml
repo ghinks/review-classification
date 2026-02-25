@@ -48,4 +48,5 @@ build-backend = "uv_build"
 review_classification = ["uv"]
 
 [project.scripts]
+review-classification = "review_classification.main:main"
 review-classify = "review_classification.main:main"
