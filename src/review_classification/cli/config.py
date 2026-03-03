@@ -19,6 +19,20 @@ class RepoConfig:
 
 
 @dataclass
+class OrgConfig:
+    """Configuration for a single organization entry."""
+
+    name: str
+    start: str | None = None
+    end: str | None = None
+    threshold: float | None = None
+    min_samples: int | None = None
+    classify_start: str | None = None
+    classify_end: str | None = None
+    exclude_repos: list[str] = field(default_factory=list)
+
+
+@dataclass
 class MultiRepoConfig:
     """Top-level configuration for multi-repository analysis.
 
@@ -27,6 +41,7 @@ class MultiRepoConfig:
     """
 
     repositories: list[RepoConfig] = field(default_factory=list)
+    organizations: list[OrgConfig] = field(default_factory=list)
     # Global defaults
     start: str | None = None
     end: str | None = None
@@ -127,10 +142,8 @@ def parse_config_file(path: Path) -> MultiRepoConfig:
 
     # --- Parse repository entries ---
     raw_repos = data.get("repositories", [])
-    if not isinstance(raw_repos, list) or len(raw_repos) == 0:
-        raise ValueError(
-            "Config file must define at least one repository under [[repositories]]"
-        )
+    if not isinstance(raw_repos, list):
+        raise ValueError("[[repositories]] must be an array of tables if present")
 
     for i, raw_repo in enumerate(raw_repos):
         if not isinstance(raw_repo, dict):
@@ -161,6 +174,54 @@ def parse_config_file(path: Path) -> MultiRepoConfig:
             ) from e
 
         config.repositories.append(repo)
+
+    # --- Parse organization entries ---
+    raw_orgs = data.get("organizations", [])
+    if not isinstance(raw_orgs, list):
+        raise ValueError("[[organizations]] must be an array of tables if present")
+
+    for i, raw_org in enumerate(raw_orgs):
+        if not isinstance(raw_org, dict):
+            raise ValueError(f"[[organizations]] entry {i} is not a TOML table")
+        if "name" not in raw_org:
+            raise ValueError(
+                f"[[organizations]] entry {i} is missing the required 'name' field"
+            )
+
+        try:
+            exclude = raw_org.get("exclude_repos", [])
+            if not isinstance(exclude, list):
+                if isinstance(exclude, str):
+                    exclude = [exclude]
+                else:
+                    raise ValueError("'exclude_repos' must be a list of strings")
+
+            org = OrgConfig(
+                name=str(raw_org["name"]),
+                start=_optional_str(raw_org, "start"),
+                end=_optional_str(raw_org, "end"),
+                threshold=(
+                    float(raw_org["threshold"]) if "threshold" in raw_org else None
+                ),
+                min_samples=(
+                    int(raw_org["min_samples"]) if "min_samples" in raw_org else None
+                ),
+                classify_start=_optional_str(raw_org, "classify_start"),
+                classify_end=_optional_str(raw_org, "classify_end"),
+                exclude_repos=[str(x) for x in exclude],
+            )
+        except (TypeError, ValueError) as e:
+            raise ValueError(
+                f"Invalid value in [[organizations]] entry {i} "
+                f"('{raw_org.get('name', '?')}'): {e}"
+            ) from e
+
+        config.organizations.append(org)
+
+    if len(config.repositories) == 0 and len(config.organizations) == 0:
+        raise ValueError(
+            "Config file must define at least one repository or organization"
+        )
 
     return config
 

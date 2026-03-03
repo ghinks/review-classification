@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from .config import MultiRepoConfig, RepoConfig, parse_config_file
+from .config import RepoConfig, parse_config_file
 from .parser import GitHubRepo
 
 app = typer.Typer(help="Identify PR review outliers in GitHub repositories")
@@ -190,12 +190,111 @@ def _detect_single(
 # ---------------------------------------------------------------------------
 
 
+def _resolve_targets(
+    repos: list[str],
+    orgs: list[str],
+    config_path: Path | None,
+    default_start: str | None = None,
+    default_end: str | None = None,
+    default_threshold: float | None = None,
+    default_min_samples: int | None = None,
+    default_classify_start: str | None = None,
+    default_classify_end: str | None = None,
+) -> list[RepoConfig]:
+    """Resolve CLI arguments and config file into a concrete list of repositories."""
+    from ..queries.github_client import get_org_repos
+
+    resolved_repos: dict[str, RepoConfig] = {}
+
+    def add_repo(rc: RepoConfig) -> None:
+        if rc.name not in resolved_repos:
+            resolved_repos[rc.name] = rc
+        else:
+            # Config file takes precedence if it was added earlier?
+            # Actually, let's just keep the first one we see or merge.
+            pass
+
+    if config_path:
+        multi = parse_config_file(config_path)
+        for repo_cfg in multi.repositories:
+            add_repo(multi.resolve(repo_cfg))
+
+        for org_cfg in multi.organizations:
+            org_repos = get_org_repos(org_cfg.name)
+            for r in org_repos:
+                if r not in org_cfg.exclude_repos:
+                    # Create a RepoConfig inheriting from org_cfg, then global
+                    rc = RepoConfig(
+                        name=r,
+                        start=org_cfg.start
+                        if org_cfg.start is not None
+                        else multi.start,
+                        end=org_cfg.end if org_cfg.end is not None else multi.end,
+                        threshold=org_cfg.threshold
+                        if org_cfg.threshold is not None
+                        else multi.threshold,
+                        min_samples=org_cfg.min_samples
+                        if org_cfg.min_samples is not None
+                        else multi.min_samples,
+                        classify_start=org_cfg.classify_start
+                        if org_cfg.classify_start is not None
+                        else multi.classify_start,
+                        classify_end=org_cfg.classify_end
+                        if org_cfg.classify_end is not None
+                        else multi.classify_end,
+                    )
+                    add_repo(rc)
+
+    # Add explicit CLI repos
+    for r in repos:
+        rc = RepoConfig(
+            name=r,
+            start=default_start,
+            end=default_end,
+            threshold=default_threshold,
+            min_samples=default_min_samples,
+            classify_start=default_classify_start,
+            classify_end=default_classify_end,
+        )
+        add_repo(rc)
+
+    # Add explicit CLI orgs
+    for o in orgs:
+        org_repos = get_org_repos(o)
+        for r in org_repos:
+            rc = RepoConfig(
+                name=r,
+                start=default_start,
+                end=default_end,
+                threshold=default_threshold,
+                min_samples=default_min_samples,
+                classify_start=default_classify_start,
+                classify_end=default_classify_end,
+            )
+            add_repo(rc)
+
+    return list(resolved_repos.values())
+
+
 @app.command()
 def fetch(
-    repository: Annotated[
-        str | None,
-        typer.Argument(
-            help="GitHub repository (owner/repo or URL). Omit when using --config."
+    repo: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--repo",
+            "-r",
+            help="GitHub repository (owner/repo). Can be specified multiple times.",
+        ),
+    ] = None,
+    org: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--org",
+            "-o",
+            help=(
+                "GitHub org. Fetches all repositories in the org. "
+                "Can be specified multiple times."
+            ),
         ),
     ] = None,
     config: Annotated[
@@ -227,35 +326,35 @@ def fetch(
     Retrieves pull requests merged within the specified date range and saves
     them to a local SQLite database for subsequent outlier analysis.
 
-    Supply either a single REPOSITORY argument or a --config file, not both.
+    Supply --repo, --org, or a --config file.
     """
-    if config is not None and repository is not None:
+    repo_list = repo or []
+    org_list = org or []
+
+    if not config and not repo_list and not org_list:
         typer.echo(
-            "Error: Specify either a repository argument or --config, not both.",
+            "Error: Provide at least one --repo, --org, or a --config file.",
             err=True,
         )
         raise typer.Exit(code=1)
 
     try:
-        if config is not None:
-            multi: MultiRepoConfig = parse_config_file(config)
-            for repo_cfg in multi.repositories:
-                resolved: RepoConfig = multi.resolve(repo_cfg)
-                _fetch_single(
-                    resolved.name,
-                    resolved.start if start_date is None else start_date,
-                    resolved.end if end_date is None else end_date,
-                    reset_db,
-                    verbose,
-                )
-        elif repository is not None:
-            _fetch_single(repository, start_date, end_date, reset_db, verbose)
-        else:
-            typer.echo(
-                "Error: Provide a repository argument or a --config file.",
-                err=True,
+        targets = _resolve_targets(
+            repos=repo_list,
+            orgs=org_list,
+            config_path=config,
+            default_start=start_date,
+            default_end=end_date,
+        )
+
+        for target in targets:
+            _fetch_single(
+                target.name,
+                target.start,
+                target.end,
+                reset_db,
+                verbose,
             )
-            raise typer.Exit(code=1)
 
     except (FileNotFoundError, ValueError) as e:
         typer.echo(f"Error: {e}", err=True)
@@ -264,10 +363,23 @@ def fetch(
 
 @app.command()
 def detect_outliers(
-    repository: Annotated[
-        str | None,
-        typer.Argument(
-            help="GitHub repository (owner/repo or URL). Omit when using --config."
+    repo: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--repo",
+            "-r",
+            help="GitHub repository (owner/repo). Can be specified multiple times.",
+        ),
+    ] = None,
+    org: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--org",
+            "-o",
+            help=(
+                "GitHub org. Fetches all repositories in the org. "
+                "Can be specified multiple times."
+            ),
         ),
     ] = None,
     config: Annotated[
@@ -322,51 +434,40 @@ def detect_outliers(
 
     Requires repository data to be fetched first using the 'fetch' command.
 
-    Supply either a single REPOSITORY argument or a --config file, not both.
-    Per-repository threshold and min_samples from the config file take
-    precedence over the CLI flags when --config is used.
+    Supply --repo, --org, or a --config file.
+    Per-repository config from the file takes precedence over CLI flags.
     """
-    if config is not None and repository is not None:
+    repo_list = repo or []
+    org_list = org or []
+
+    if not config and not repo_list and not org_list:
         typer.echo(
-            "Error: Specify either a repository argument or --config, not both.",
+            "Error: Provide at least one --repo, --org, or a --config file.",
             err=True,
         )
         raise typer.Exit(code=1)
 
     try:
-        if config is not None:
-            multi = parse_config_file(config)
-            for repo_cfg in multi.repositories:
-                resolved = multi.resolve(repo_cfg)
-                _detect_single(
-                    resolved.name,
-                    resolved.threshold if resolved.threshold is not None else threshold,
-                    resolved.min_samples
-                    if resolved.min_samples is not None
-                    else min_samples,
-                    output_format,
-                    verbose,
-                    resolved.classify_start
-                    if classify_start is None
-                    else classify_start,
-                    resolved.classify_end if classify_end is None else classify_end,
-                )
-        elif repository is not None:
+        targets = _resolve_targets(
+            repos=repo_list,
+            orgs=org_list,
+            config_path=config,
+            default_threshold=threshold,
+            default_min_samples=min_samples,
+            default_classify_start=classify_start,
+            default_classify_end=classify_end,
+        )
+
+        for target in targets:
             _detect_single(
-                repository,
-                threshold,
-                min_samples,
+                target.name,
+                target.threshold if target.threshold is not None else threshold,
+                target.min_samples if target.min_samples is not None else min_samples,
                 output_format,
                 verbose,
-                classify_start,
-                classify_end,
+                target.classify_start,
+                target.classify_end,
             )
-        else:
-            typer.echo(
-                "Error: Provide a repository argument or a --config file.",
-                err=True,
-            )
-            raise typer.Exit(code=1)
 
     except (FileNotFoundError, ValueError) as e:
         typer.echo(f"Error: {e}", err=True)
