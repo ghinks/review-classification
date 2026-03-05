@@ -27,11 +27,14 @@ def test_review_classify_integration() -> None:
     env["GITHUB_TOKEN"] = token
 
     # 3. Construct command
-    # "uv run review-classify expressjs/express --start 2024-12-01 --end 2024-12-31"
+    # "uv run review-classify fetch --repo expressjs/express \\
+    #      --start 2024-12-01 --end 2024-12-31"
     cmd = [
         "uv",
         "run",
         "review-classify",
+        "fetch",
+        "--repo",
         "expressjs/express",
         "--start",
         "2024-12-01",

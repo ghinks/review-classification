@@ -148,3 +148,30 @@ def fetch_prs(
 
     print(f"\nTotal PRs fetched: {len(prs_data)}")
     return prs_data
+
+
+@retry(
+    retry=retry_if_exception_type((RateLimitExceededException, GithubException)),
+    wait=wait_exponential(multiplier=1, min=2, max=60),
+    stop=stop_after_attempt(5),
+)
+def get_org_repos(org_name: str, token: str | None = None) -> list[str]:
+    """Fetch all non-archived repository names (owner/repo) for an organization."""
+    if not token:
+        token = os.getenv("GITHUB_TOKEN")
+
+    g = Github(token)
+    try:
+        org = g.get_organization(org_name)
+    except GithubException as e:
+        print(f"Error fetching organization '{org_name}': {e}")
+        return []
+
+    repos = []
+    print(f"Fetching repositories for organization '{org_name}'...")
+    for repo in org.get_repos():
+        if not repo.archived:
+            repos.append(repo.full_name)
+
+    print(f"Found {len(repos)} active repositories in '{org_name}'.")
+    return repos

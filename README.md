@@ -34,18 +34,27 @@ Without a token the GitHub API rate limit is very low.
 ### 2. `fetch` — retrieve and store PR data
 
 ```bash
-# Fetch PRs merged in the last 30 days (default)
-uv run review-classify fetch owner/repo
+# Fetch PRs merged in the last 30 days (default) for a specific repo
+uv run review-classify fetch --repo owner/repo
+
+# Fetch PRs for an entire organization
+uv run review-classify fetch --org your-org
 
 # Fetch PRs within a specific date range
-uv run review-classify fetch owner/repo --start 2024-01-01 --end 2024-06-30
+uv run review-classify fetch --repo owner/repo --start 2024-01-01 --end 2024-06-30
 
 # Clear existing data before fetching
-uv run review-classify fetch owner/repo --reset-db --start 2024-01-01
+uv run review-classify fetch --repo owner/repo --reset-db --start 2024-01-01
+
+# Run fetching using a TOML configuration file
+uv run review-classify fetch --config config.toml
 ```
 
 | Option | Description |
 | --- | --- |
+| `--repo` / `-r` | GitHub repository (owner/repo). Can be specified multiple times. |
+| `--org` / `-o` | GitHub organization. Fetches all repositories in the org. Can be specified multiple times. |
+| `--config` / `-c` | Path to a TOML config file defining multiple repositories/organizations. |
 | `--start` / `-s` | Start date for PR range (YYYY-MM-DD). Defaults to 30 days ago. |
 | `--end` / `-e` | End date for PR range (YYYY-MM-DD). |
 | `--reset-db` | Delete all stored data before fetching. |
@@ -54,18 +63,24 @@ uv run review-classify fetch owner/repo --reset-db --start 2024-01-01
 ### 3. `detect-outliers` — find unusual PRs
 
 ```bash
-# Detect outliers across all stored PRs
-uv run review-classify detect-outliers owner/repo
+# Detect outliers across all stored PRs for a repo
+uv run review-classify detect-outliers --repo owner/repo
+
+# Detect outliers for an entire organization
+uv run review-classify detect-outliers --org your-org
 
 # Stricter threshold (fewer, more extreme outliers)
-uv run review-classify detect-outliers owner/repo --threshold 3.0
+uv run review-classify detect-outliers --repo owner/repo --threshold 3.0
 
 # Export to JSON
-uv run review-classify detect-outliers owner/repo --format json > outliers.json
+uv run review-classify detect-outliers --repo owner/repo --format json > outliers.json
 ```
 
 | Option | Description |
 | --- | --- |
+| `--repo` / `-r` | GitHub repository (owner/repo). Can be specified multiple times. |
+| `--org` / `-o` | GitHub organization. Fetches all repositories in the org. Can be specified multiple times. |
+| `--config` / `-c` | Path to a TOML config file defining multiple repositories/organizations. |
 | `--threshold` / `-t` | Z-score threshold for flagging an outlier. Default: `2.0`. |
 | `--min-samples` | Minimum number of PRs required for analysis. Default: `30`. |
 | `--format` / `-f` | Output format: `table` (default), `json`, or `csv`. |
@@ -87,12 +102,12 @@ Use `--classify-start` and `--classify-end` to define a historical baseline wind
 
 ```bash
 # Use Jan–Jun 2024 as the baseline; evaluate PRs merged after 2024-06-30
-uv run review-classify detect-outliers owner/repo \
+uv run review-classify detect-outliers --repo owner/repo \
   --classify-start 2024-01-01 \
   --classify-end   2024-06-30
 
 # Same, with stricter threshold and JSON output
-uv run review-classify detect-outliers owner/repo \
+uv run review-classify detect-outliers --repo owner/repo \
   --classify-start 2024-01-01 \
   --classify-end   2024-06-30 \
   --threshold 2.5 \
@@ -103,11 +118,11 @@ uv run review-classify detect-outliers owner/repo \
 
 ```bash
 # 1. Fetch a full year of history as the baseline
-uv run review-classify fetch owner/repo \
+uv run review-classify fetch --repo owner/repo \
   --start 2024-01-01 --end 2024-12-31
 
 # 2. Evaluate PRs from January 2025 against that baseline
-uv run review-classify detect-outliers owner/repo \
+uv run review-classify detect-outliers --repo owner/repo \
   --classify-start 2024-01-01 \
   --classify-end   2024-12-31 \
   --format table

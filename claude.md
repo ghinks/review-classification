@@ -32,3 +32,9 @@ I want to be able to
 
 ## Z Score Calculation
 - I would like to use z score calculation to identify outliers.
+
+## Additional work
+- be able to specify the period of classification by date range that excludes period of measurement of the PR reviews
+- be able to run upon a github org
+- be able to run on specific repos defined by org/repo from command line and config file
+- be able to install via the brew package manager
