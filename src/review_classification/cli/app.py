@@ -1,6 +1,7 @@
 """Typer CLI application for review-classification."""
 
 from datetime import UTC, datetime, timedelta
+from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated
 
@@ -10,6 +11,28 @@ from .config import RepoConfig, parse_config_file
 from .parser import GitHubRepo
 
 app = typer.Typer(help="Identify PR review outliers in GitHub repositories")
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(version("review-classification"))
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    _version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            "-V",
+            help="Show the package version and exit.",
+            callback=_version_callback,
+            is_eager=True,
+        ),
+    ] = False,
+) -> None:
+    pass
 
 
 # ---------------------------------------------------------------------------
