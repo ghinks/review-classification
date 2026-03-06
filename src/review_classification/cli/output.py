@@ -9,6 +9,7 @@ from ..analysis.outlier_detector import OutlierResult
 def format_outlier_results(
     results: list[OutlierResult],
     format_type: Literal["table", "json", "csv"] = "table",
+    repo_name: str | None = None,
 ) -> str:
     """Format outlier detection results.
 
@@ -26,15 +27,19 @@ def format_outlier_results(
     elif format_type == "csv":
         return _format_csv(outliers)
     else:
-        return _format_table(outliers, total_prs=len(results))
+        return _format_table(outliers, total_prs=len(results), repo_name=repo_name)
 
 
-def _format_table(outliers: list[OutlierResult], total_prs: int) -> str:
+def _format_table(
+    outliers: list[OutlierResult], total_prs: int, repo_name: str | None = None
+) -> str:
     """Format as ASCII table."""
     if not outliers:
         return f"No outliers detected out of {total_prs} PRs analyzed."
 
     lines = []
+    if repo_name:
+        lines.append(f"\nRepository: {repo_name}")
     lines.append("\nOutlier Pull Requests (ordered by most recently merged)")
     lines.append("=" * 150)
     lines.append(
