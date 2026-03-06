@@ -114,6 +114,22 @@ uv run review-classify detect-outliers --repo owner/repo \
   --format json > outliers.json
 ```
 
+#### Per-repository analysis
+
+Outlier detection is always **scoped to a single repository**. When you target multiple repositories (via `--org`, multiple `--repo` flags, or a config file), each repository is analysed independently:
+
+1. **Baseline statistics** — mean and standard deviation for every metric are computed from that repository's own merged PRs (optionally restricted to the baseline window).
+2. **Z-scores** — each PR is scored against its own repository's statistics, not a cross-repository pool.
+3. **Isolation** — a PR in `owner/repo-a` is never compared against PRs from `owner/repo-b`.
+
+This means thresholds adapt to each project's natural pace and size. A large PR in a small, infrequently-updated repository is judged against that repository's history, not the (potentially very different) norms of a busier sibling repository in the same organisation.
+
+```
+repo-a  ──►  stats(repo-a)  ──►  z-scores(repo-a PRs)
+repo-b  ──►  stats(repo-b)  ──►  z-scores(repo-b PRs)
+             (independent)
+```
+
 ### End-to-end example
 
 ```bash
