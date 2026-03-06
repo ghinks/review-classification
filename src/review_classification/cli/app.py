@@ -194,7 +194,7 @@ def _detect_single(
                 f"({len(outliers) / len(results) * 100:.1f}%)"
             )
 
-        output = format_outlier_results(results, output_format)  # type: ignore
+        output = format_outlier_results(results, output_format, repo_name=full_name)  # type: ignore
         typer.echo(output)
         return True
 
