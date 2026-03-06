@@ -128,6 +128,62 @@ uv run review-classify detect-outliers --repo owner/repo \
   --format table
 ```
 
+## Configuration file
+
+Both `fetch` and `detect-outliers` accept `--config <file.toml>` as an alternative to passing `--repo` / `--org` flags. The file is TOML and supports three sections:
+
+| Section | Purpose |
+| --- | --- |
+| `[defaults]` | Global values applied to every entry that does not set its own |
+| `[[repositories]]` | One entry per `owner/repo` to target |
+| `[[organizations]]` | One entry per GitHub org; fetches all repos in that org |
+
+### Full example
+
+```toml
+# config.toml
+
+[defaults]
+start           = "2024-01-01"
+end             = "2024-12-31"
+threshold       = 2.0
+min_samples     = 30
+classify_start  = "2024-01-01"
+classify_end    = "2024-06-30"
+
+# Individual repositories ─────────────────────────────────────────────────────
+
+[[repositories]]
+name = "owner/repo-a"
+# inherits all [defaults]
+
+[[repositories]]
+name           = "owner/repo-b"
+start          = "2024-06-01"   # overrides [defaults] start
+threshold      = 2.5            # stricter outlier threshold for this repo
+classify_start = "2024-06-01"
+classify_end   = "2024-09-30"
+
+# Organizations ───────────────────────────────────────────────────────────────
+
+[[organizations]]
+name = "my-org"
+# inherits all [defaults]
+exclude_repos = ["my-org/archived-repo", "my-org/fork-only"]
+
+[[organizations]]
+name        = "another-org"
+start       = "2024-03-01"
+min_samples = 20
+```
+
+### Key rules
+
+- At least one `[[repositories]]` or `[[organizations]]` entry is required.
+- `[defaults]` is optional; omitting it uses the built-in defaults (`threshold = 2.0`, `min_samples = 30`).
+- Per-entry values always take precedence over `[defaults]`.
+- `exclude_repos` (organizations only) is a list of `owner/repo` strings to skip.
+
 ## Development
 
 ### Setup
