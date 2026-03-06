@@ -3,6 +3,8 @@ name = "review-classification"
 version = "0.0.7"
 description = "CLI tool to identify pull request outliers in GitHub repositories using Z-score analysis"
 readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "ghinks", email = "ghinks@yahoo.com"}]
 requires-python = ">=3.12"
 dependencies = [
     "pygithub>=2.8.1",
