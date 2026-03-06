@@ -49,5 +49,8 @@ build-backend = "uv_build"
 [tool.uv.extra-build-dependencies]
 review_classification = ["uv"]
 
+[project.urls]
+Repository = "https://github.com/ghinks/review-classification"
+
 [project.scripts]
 review-classify = "review_classification.main:main"
