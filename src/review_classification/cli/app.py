@@ -100,7 +100,7 @@ def _detect_single(
     verbose: bool,
     classify_start: str | None,
     classify_end: str | None,
-) -> None:
+) -> bool:
     """Run outlier detection for a single repository."""
     repo = GitHubRepo.from_string(repo_name)
     full_name = f"{repo.owner}/{repo.name}"
@@ -154,7 +154,7 @@ def _detect_single(
                 f"No PRs found for {full_name}. Run 'fetch' command first.",
                 err=True,
             )
-            raise typer.Exit(code=1)
+            return False
 
         for pr in prs:
             if pr.id is not None:
@@ -196,6 +196,7 @@ def _detect_single(
 
         output = format_outlier_results(results, output_format)  # type: ignore
         typer.echo(output)
+        return True
 
     except InsufficientDataError as e:
         typer.echo(f"Error: {e}", err=True)
@@ -203,7 +204,7 @@ def _detect_single(
             f"Repository {full_name} does not have enough merged PRs for analysis.",
             err=True,
         )
-        raise typer.Exit(code=1) from e
+        return False
     finally:
         session.close()
 
@@ -481,8 +482,9 @@ def detect_outliers(
             default_classify_end=classify_end,
         )
 
+        failed = False
         for target in targets:
-            _detect_single(
+            ok = _detect_single(
                 target.name,
                 target.threshold if target.threshold is not None else threshold,
                 target.min_samples if target.min_samples is not None else min_samples,
@@ -491,6 +493,11 @@ def detect_outliers(
                 target.classify_start,
                 target.classify_end,
             )
+            if not ok:
+                failed = True
+
+        if failed:
+            raise typer.Exit(code=1)
 
     except (FileNotFoundError, ValueError) as e:
         typer.echo(f"Error: {e}", err=True)
