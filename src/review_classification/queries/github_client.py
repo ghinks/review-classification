@@ -140,6 +140,7 @@ def fetch_prs(
             review_comments=pr.review_comments,
             state=pr.state,
             url=pr.html_url,
+            base_branch=pr.base.ref if pr.base else None,
         )
         prs_data.append(pr_model)
         count += 1

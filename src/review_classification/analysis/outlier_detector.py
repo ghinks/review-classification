@@ -36,6 +36,7 @@ def calculate_repository_statistics(
     min_sample_size: int = 30,
     stats_start: datetime | None = None,
     stats_end: datetime | None = None,
+    exclude_base_branches: set[str] | None = None,
 ) -> tuple[dict[str, dict[str, float]], int]:
     """Calculate statistics for all metrics in a repository.
 
@@ -45,6 +46,7 @@ def calculate_repository_statistics(
         min_sample_size: Minimum PRs needed for analysis
         stats_start: Only include PRs merged on or after this date in statistics
         stats_end: Only include PRs merged on or before this date in statistics
+        exclude_base_branches: If set, exclude PRs whose base_branch is in this set
 
     Returns:
         Tuple of (metric_stats, sample_count) where metric_stats is a dict
@@ -65,6 +67,13 @@ def calculate_repository_statistics(
         statement = statement.where(PullRequest.merged_at <= stats_end)  # type: ignore[operator]
 
     prs = list(session.exec(statement).all())
+
+    if exclude_base_branches:
+        prs = [
+            pr
+            for pr in prs
+            if pr.base_branch is None or pr.base_branch not in exclude_base_branches
+        ]
 
     if len(prs) < min_sample_size:
         msg = (
@@ -217,6 +226,7 @@ def detect_outliers_for_repository(
     threshold: float = 2.0,
     classify_start: datetime | None = None,
     classify_end: datetime | None = None,
+    exclude_base_branches: set[str] | None = None,
 ) -> list[OutlierResult]:
     """Detect outliers for all PRs in a repository.
 
@@ -230,6 +240,7 @@ def detect_outliers_for_repository(
         classify_end: End of the baseline measurement window. PRs merged after this
             date are the ones evaluated for outliers. PRs within
             [classify_start, classify_end] form the baseline.
+        exclude_base_branches: If set, exclude PRs whose base_branch is in this set
 
     Returns:
         List of OutlierResult for each PR
@@ -244,6 +255,7 @@ def detect_outliers_for_repository(
         min_sample_size,
         stats_start=classify_start,
         stats_end=classify_end,
+        exclude_base_branches=exclude_base_branches,
     )
 
     # Fetch PRs to evaluate: those after the classification window
@@ -258,6 +270,13 @@ def detect_outliers_for_repository(
         statement = statement.where(PullRequest.merged_at >= classify_start)  # type: ignore[operator]
 
     prs = list(session.exec(statement).all())
+
+    if exclude_base_branches:
+        prs = [
+            pr
+            for pr in prs
+            if pr.base_branch is None or pr.base_branch not in exclude_base_branches
+        ]
 
     pr_ids = [pr.id for pr in prs if pr.id is not None]
     feature_statement = select(PRFeatures).where(

@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlmodel import Session, SQLModel, create_engine, delete, select
 
 from .models import PRFeatures, PROutlierScore, PullRequest
@@ -12,6 +13,13 @@ engine = create_engine(sqlite_url)
 def init_db() -> None:
     """Initialize the database tables."""
     SQLModel.metadata.create_all(engine)
+    # Migrate: add base_branch column to existing databases that predate it
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE pullrequest ADD COLUMN base_branch TEXT"))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists
 
 
 def get_session() -> Session:
@@ -45,6 +53,7 @@ def save_pr(pr_data: PullRequest) -> PullRequest:
             existing_pr.review_comments = pr_data.review_comments
             existing_pr.state = pr_data.state
             existing_pr.url = pr_data.url
+            existing_pr.base_branch = pr_data.base_branch
             # repository_name is already correct
 
             session.add(existing_pr)

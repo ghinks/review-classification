@@ -28,7 +28,7 @@ def test_review_classify_integration() -> None:
 
     # 3. Construct command
     # "uv run review-classify fetch --repo expressjs/express \\
-    #      --start 2024-12-01 --end 2024-12-31"
+    #      --collate-start 2024-12-01 --collate-end 2024-12-31"
     cmd = [
         "uv",
         "run",
@@ -36,9 +36,9 @@ def test_review_classify_integration() -> None:
         "fetch",
         "--repo",
         "expressjs/express",
-        "--start",
+        "--collate-start",
         "2024-12-01",
-        "--end",
+        "--collate-end",
         "2024-12-31",
     ]
 
