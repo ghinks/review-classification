@@ -23,7 +23,7 @@ uv sync
 
 ## Usage
 
-The tool has four commands: **fetch**, **classify**, **fetch-and-classify**, and **detect-outliers** (legacy).
+The tool has three commands: **fetch**, **classify**, and **fetch-and-classify**.
 
 ### 1. Configure GitHub Token
 
@@ -169,16 +169,6 @@ uv run review-classify fetch-and-classify --repo owner/repo \
 | `--reset-db` | Delete existing data and force a fresh fetch. |
 | `--verbose` / `-v` | Print progress details. |
 
-### 5. `detect-outliers` — legacy command
-
-The original detection command. Accepts `--classify-start` / `--classify-end` instead of `--start` / `--end`. Prefer `classify` for new workflows.
-
-```bash
-uv run review-classify detect-outliers --repo owner/repo \
-  --classify-start 2024-01-01 \
-  --classify-end   2024-06-30
-```
-
 ### Per-repository analysis
 
 Outlier detection is always **scoped to a single repository**. When you target multiple repositories (via `--org`, multiple `--repo` flags, or a config file), each repository is analysed independently:
@@ -222,7 +212,7 @@ uv run review-classify fetch-and-classify --repo owner/repo \
 
 ## Configuration file
 
-`fetch`, `classify`, `fetch-and-classify`, and `detect-outliers` all accept `--config <file.toml>` as an alternative to passing `--repo` / `--org` flags. The file is TOML and supports three sections:
+`fetch`, `classify`, and `fetch-and-classify` all accept `--config <file.toml>` as an alternative to passing `--repo` / `--org` flags. The file is TOML and supports three sections:
 
 | Section | Purpose |
 | --- | --- |
