@@ -21,6 +21,7 @@ class PullRequest(SQLModel, table=True):
     review_comments: int = 0
     state: str
     url: str
+    base_branch: str | None = None
 
 
 class PRFeatures(SQLModel, table=True):

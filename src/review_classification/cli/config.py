@@ -10,12 +10,12 @@ class RepoConfig:
     """Configuration for a single repository entry."""
 
     name: str
-    start: str | None = None
-    end: str | None = None
+    collate_start: str | None = None
+    collate_end: str | None = None
     threshold: float | None = None
     min_samples: int | None = None
-    classify_start: str | None = None
-    classify_end: str | None = None
+    start: str | None = None
+    end: str | None = None
 
 
 @dataclass
@@ -23,12 +23,12 @@ class OrgConfig:
     """Configuration for a single organization entry."""
 
     name: str
-    start: str | None = None
-    end: str | None = None
+    collate_start: str | None = None
+    collate_end: str | None = None
     threshold: float | None = None
     min_samples: int | None = None
-    classify_start: str | None = None
-    classify_end: str | None = None
+    start: str | None = None
+    end: str | None = None
     exclude_repos: list[str] = field(default_factory=list)
 
 
@@ -43,12 +43,12 @@ class MultiRepoConfig:
     repositories: list[RepoConfig] = field(default_factory=list)
     organizations: list[OrgConfig] = field(default_factory=list)
     # Global defaults
-    start: str | None = None
-    end: str | None = None
+    collate_start: str | None = None
+    collate_end: str | None = None
     threshold: float = 2.0
     min_samples: int = 30
-    classify_start: str | None = None
-    classify_end: str | None = None
+    start: str | None = None
+    end: str | None = None
 
     def resolve(self, repo: RepoConfig) -> RepoConfig:
         """Return a RepoConfig with global defaults applied for unset fields.
@@ -63,22 +63,20 @@ class MultiRepoConfig:
         """
         return RepoConfig(
             name=repo.name,
-            start=repo.start if repo.start is not None else self.start,
-            end=repo.end if repo.end is not None else self.end,
+            collate_start=(
+                repo.collate_start
+                if repo.collate_start is not None
+                else self.collate_start
+            ),
+            collate_end=(
+                repo.collate_end if repo.collate_end is not None else self.collate_end
+            ),
             threshold=repo.threshold if repo.threshold is not None else self.threshold,
             min_samples=(
                 repo.min_samples if repo.min_samples is not None else self.min_samples
             ),
-            classify_start=(
-                repo.classify_start
-                if repo.classify_start is not None
-                else self.classify_start
-            ),
-            classify_end=(
-                repo.classify_end
-                if repo.classify_end is not None
-                else self.classify_end
-            ),
+            start=repo.start if repo.start is not None else self.start,
+            end=repo.end if repo.end is not None else self.end,
         )
 
 
@@ -92,17 +90,19 @@ def parse_config_file(path: Path) -> MultiRepoConfig:
     Example config file::
 
         [defaults]
-        start = "2024-01-01"
-        end   = "2024-12-31"
-        threshold  = 2.0
-        min_samples = 30
+        collate_start = "2024-01-01"
+        collate_end   = "2024-12-31"
+        threshold     = 2.0
+        min_samples   = 30
+        start         = "2024-01-01"
+        end           = "2024-06-30"
 
         [[repositories]]
         name = "owner/repo-a"
 
         [[repositories]]
-        name  = "owner/repo-b"
-        start = "2024-06-01"   # overrides [defaults] start
+        name          = "owner/repo-b"
+        collate_start = "2024-06-01"   # overrides [defaults] collate_start
 
     Args:
         path: Path to the TOML configuration file.
@@ -130,12 +130,12 @@ def parse_config_file(path: Path) -> MultiRepoConfig:
 
     try:
         config = MultiRepoConfig(
-            start=_optional_str(raw_defaults, "start"),
-            end=_optional_str(raw_defaults, "end"),
+            collate_start=_optional_str(raw_defaults, "collate_start"),
+            collate_end=_optional_str(raw_defaults, "collate_end"),
             threshold=float(raw_defaults.get("threshold", 2.0)),
             min_samples=int(raw_defaults.get("min_samples", 30)),
-            classify_start=_optional_str(raw_defaults, "classify_start"),
-            classify_end=_optional_str(raw_defaults, "classify_end"),
+            start=_optional_str(raw_defaults, "start"),
+            end=_optional_str(raw_defaults, "end"),
         )
     except (TypeError, ValueError) as e:
         raise ValueError(f"Invalid value in [defaults]: {e}") from e
@@ -156,16 +156,16 @@ def parse_config_file(path: Path) -> MultiRepoConfig:
         try:
             repo = RepoConfig(
                 name=str(raw_repo["name"]),
-                start=_optional_str(raw_repo, "start"),
-                end=_optional_str(raw_repo, "end"),
+                collate_start=_optional_str(raw_repo, "collate_start"),
+                collate_end=_optional_str(raw_repo, "collate_end"),
                 threshold=(
                     float(raw_repo["threshold"]) if "threshold" in raw_repo else None
                 ),
                 min_samples=(
                     int(raw_repo["min_samples"]) if "min_samples" in raw_repo else None
                 ),
-                classify_start=_optional_str(raw_repo, "classify_start"),
-                classify_end=_optional_str(raw_repo, "classify_end"),
+                start=_optional_str(raw_repo, "start"),
+                end=_optional_str(raw_repo, "end"),
             )
         except (TypeError, ValueError) as e:
             raise ValueError(
@@ -198,16 +198,16 @@ def parse_config_file(path: Path) -> MultiRepoConfig:
 
             org = OrgConfig(
                 name=str(raw_org["name"]),
-                start=_optional_str(raw_org, "start"),
-                end=_optional_str(raw_org, "end"),
+                collate_start=_optional_str(raw_org, "collate_start"),
+                collate_end=_optional_str(raw_org, "collate_end"),
                 threshold=(
                     float(raw_org["threshold"]) if "threshold" in raw_org else None
                 ),
                 min_samples=(
                     int(raw_org["min_samples"]) if "min_samples" in raw_org else None
                 ),
-                classify_start=_optional_str(raw_org, "classify_start"),
-                classify_end=_optional_str(raw_org, "classify_end"),
+                start=_optional_str(raw_org, "start"),
+                end=_optional_str(raw_org, "end"),
                 exclude_repos=[str(x) for x in exclude],
             )
         except (TypeError, ValueError) as e:
