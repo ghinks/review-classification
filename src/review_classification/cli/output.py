@@ -6,6 +6,12 @@ from typing import Literal
 
 from ..analysis.outlier_detector import OutlierResult
 
+# Per-column maximum display widths (characters before truncation)
+_MAX_AUTHOR = 20
+_MAX_FEATURES = 40
+_MAX_TITLE = 50
+_MAX_NOTE = 65  # error/note text in the features cell
+
 
 @dataclass
 class RepoClassifyResult:
@@ -44,19 +50,54 @@ def format_combined_results(
         return _format_combined_table(sorted_repos)
 
 
-def _format_combined_table(repo_results: list[RepoClassifyResult]) -> str:
-    """Render a single markdown table ordered by repository name."""
-    header = (
-        "| Repository | PR # | Merged | Author | Max \\|Z\\| "
-        "| Outlier Features | Title |"
-    )
-    separator = "|---|---|---|---|---|---|---|"
+# ---------------------------------------------------------------------------
+# Table helpers
+# ---------------------------------------------------------------------------
 
-    rows: list[str] = []
+
+def _truncate(text: str, max_len: int) -> str:
+    """Truncate text to max_len, appending … if shortened."""
+    return text if len(text) <= max_len else text[: max_len - 1] + "\u2026"
+
+
+def _fmt_row(cells: list[str], widths: list[int]) -> str:
+    """Render one markdown table row with cells padded to column widths."""
+    padded = (cell.ljust(widths[i]) for i, cell in enumerate(cells))
+    return "| " + " | ".join(padded) + " |"
+
+
+def _separator(widths: list[int]) -> str:
+    """Render the markdown header-separator row."""
+    return "|" + "|".join("-" * (w + 2) for w in widths) + "|"
+
+
+# ---------------------------------------------------------------------------
+# Table output
+# ---------------------------------------------------------------------------
+
+
+def _format_combined_table(repo_results: list[RepoClassifyResult]) -> str:
+    """Render a single padded markdown/plain-text table ordered by repository.
+
+    Each cell is padded to the maximum width in its column so the table
+    aligns in both a terminal and a markdown renderer.
+    """
+    headers = [
+        "Repository",
+        "PR #",
+        "Merged",
+        "Author",
+        "Max Z",
+        "Outlier Features",
+        "Title",
+    ]
+
+    # Build raw cell data for every row
+    rows: list[list[str]] = []
     for repo in repo_results:
         if not repo.success:
-            note = _escape_md(repo.error or "Could not be classified")
-            rows.append(f"| `{repo.repo_name}` | — | — | — | — | {note} | — |")
+            note = _truncate(repo.error or "Could not be classified", _MAX_NOTE)
+            rows.append([f"`{repo.repo_name}`", "—", "—", "—", "—", note, "—"])
             continue
 
         outliers = sorted(
@@ -66,17 +107,32 @@ def _format_combined_table(repo_results: list[RepoClassifyResult]) -> str:
         )
         for o in outliers:
             merged = o.merged_at.strftime("%Y-%m-%d") if o.merged_at else "—"
-            features = _escape_md(", ".join(o.outlier_features))
-            title = _escape_md(o.title)
-            author = _escape_md(o.author)
             rows.append(
-                f"| `{repo.repo_name}` | #{o.pr_number} | {merged} | "
-                f"{author} | {o.max_abs_z_score:.2f} | {features} | {title} |"
+                [
+                    f"`{repo.repo_name}`",
+                    f"#{o.pr_number}",
+                    merged,
+                    _truncate(o.author, _MAX_AUTHOR),
+                    f"{o.max_abs_z_score:.2f}",
+                    _truncate(", ".join(o.outlier_features), _MAX_FEATURES),
+                    _truncate(o.title, _MAX_TITLE),
+                ]
             )
 
-    lines = [header, separator, *rows, ""]
+    # Column widths = max(header width, max cell width in that column)
+    widths = [len(h) for h in headers]
+    for row in rows:
+        for i, cell in enumerate(row):
+            widths[i] = max(widths[i], len(cell))
 
-    # Summary
+    lines: list[str] = [
+        _fmt_row(headers, widths),
+        _separator(widths),
+        *(_fmt_row(row, widths) for row in rows),
+        "",
+    ]
+
+    # Summary footer
     successful = [r for r in repo_results if r.success]
     failed = [r for r in repo_results if not r.success]
     total_outliers = sum(
@@ -95,9 +151,9 @@ def _format_combined_table(repo_results: list[RepoClassifyResult]) -> str:
     return "\n".join(lines)
 
 
-def _escape_md(text: str) -> str:
-    """Escape markdown table special characters."""
-    return text.replace("|", "\\|")
+# ---------------------------------------------------------------------------
+# JSON output
+# ---------------------------------------------------------------------------
 
 
 def _format_combined_json(repo_results: list[RepoClassifyResult]) -> str:
@@ -125,6 +181,11 @@ def _format_combined_json(repo_results: list[RepoClassifyResult]) -> str:
                 }
             )
     return json.dumps(records, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# CSV output
+# ---------------------------------------------------------------------------
 
 
 def _format_combined_csv(repo_results: list[RepoClassifyResult]) -> str:
