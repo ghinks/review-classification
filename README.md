@@ -276,8 +276,72 @@ uv sync --group dev
 
 ### Running Tests
 
+Run the full test suite:
+
 ```bash
 uv run pytest
+```
+
+Run **unit tests only** (excludes integration tests that call the real GitHub API):
+
+```bash
+uv run pytest -m "not integration"
+```
+
+Run **integration tests only** (requires a valid `GITHUB_TOKEN` or an authenticated `gh` CLI session):
+
+```bash
+uv run pytest -m integration
+```
+
+#### Running individual integration tests
+
+Integration tests live in `tests/test_integration.py`. They are marked `@pytest.mark.integration` and target the `expressjs/express` repository as a real-world fixture.
+
+**`test_fetch_examples_integration`** — four parametrised variants of the `fetch` command. Run all four at once:
+
+```bash
+uv run pytest tests/test_integration.py::test_fetch_examples_integration
+```
+
+Or run a single variant by its explicit ID:
+
+```bash
+# Variant 1 — fetch with default date range (no explicit collate window)
+uv run pytest "tests/test_integration.py::test_fetch_examples_integration[fetch-default]"
+
+# Variant 2 — fetch with explicit --collate-start / --collate-end
+uv run pytest "tests/test_integration.py::test_fetch_examples_integration[fetch-with-dates]"
+
+# Variant 3 — fetch with --reset-db and explicit date range
+uv run pytest "tests/test_integration.py::test_fetch_examples_integration[fetch-reset-db]"
+
+# Variant 4 — fetch using a --config TOML file
+uv run pytest "tests/test_integration.py::test_fetch_examples_integration[fetch-config]"
+```
+
+**`test_classify_example_table_output`** — classify with default table output:
+
+```bash
+uv run pytest tests/test_integration.py::test_classify_example_table_output
+```
+
+**`test_classify_example_stricter_threshold`** — classify with `--threshold 3.0`:
+
+```bash
+uv run pytest tests/test_integration.py::test_classify_example_stricter_threshold
+```
+
+**`test_classify_example_json_output`** — classify with `--format json` and validates the JSON payload:
+
+```bash
+uv run pytest tests/test_integration.py::test_classify_example_json_output
+```
+
+**`test_classify_example_exclude_primary_merged`** — classify with `--exclude-primary-merged`:
+
+```bash
+uv run pytest tests/test_integration.py::test_classify_example_exclude_primary_merged
 ```
 
 ### Linting & Formatting
