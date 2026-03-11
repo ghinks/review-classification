@@ -8,6 +8,7 @@ from typing import Annotated
 import typer
 
 from .config import RepoConfig, parse_config_file
+from .output import RepoClassifyResult, format_combined_results
 from .parser import GitHubRepo
 
 app = typer.Typer(help="Identify PR review outliers in GitHub repositories")
@@ -98,16 +99,12 @@ def _detect_single(
     repo_name: str,
     threshold: float,
     min_samples: int,
-    output_format: str,
     verbose: bool,
     classify_start: str | None,
     classify_end: str | None,
     exclude_primary_merged: bool = False,
-) -> tuple[bool, str]:
-    """Run outlier detection for a single repository.
-
-    Returns (success, output_or_error_message).
-    """
+) -> RepoClassifyResult:
+    """Run outlier detection for a single repository."""
     repo = GitHubRepo.from_string(repo_name)
     full_name = f"{repo.owner}/{repo.name}"
 
@@ -148,7 +145,6 @@ def _detect_single(
     from ..features.engineering import create_pr_features
     from ..sqlite.database import get_session, init_db, save_pr_features
     from ..sqlite.models import PullRequest
-    from .output import format_outlier_results
 
     init_db()
     session = get_session()
@@ -161,7 +157,10 @@ def _detect_single(
         prs = list(session.exec(statement).all())
 
         if len(prs) == 0:
-            return False, f"{full_name}: no PRs found — run 'fetch' command first."
+            return RepoClassifyResult(
+                repo_name=full_name,
+                error="No PRs found — run 'fetch' command first.",
+            )
 
         for pr in prs:
             if pr.id is not None:
@@ -201,28 +200,32 @@ def _detect_single(
                 f"({len(outliers) / len(results) * 100:.1f}%)"
             )
 
-        output = format_outlier_results(results, output_format, repo_name=full_name)  # type: ignore
-        return True, output
+        return RepoClassifyResult(
+            repo_name=full_name,
+            results=results,
+            total_prs=len(results),
+        )
 
     except InsufficientDataError as e:
-        return False, f"{full_name}: insufficient data — {e}"
+        msg = str(e)
+        # e.g. "Repository x has only 18 merged PRs, need at least 30"
+        short = msg.split("has only")[-1].strip() if "has only" in msg else msg
+        return RepoClassifyResult(
+            repo_name=full_name,
+            error=f"Sample limit not reached — {short}",
+        )
     finally:
         session.close()
 
 
 def _print_detect_results(
-    successes: list[str], failures: list[str], raise_on_failure: bool = True
+    repo_results: list[RepoClassifyResult],
+    output_format: str,
 ) -> None:
-    """Print deferred results: all successful outputs first, then error summaries."""
-    for output in successes:
-        typer.echo(output)
-
-    if failures:
-        typer.echo("\nRepositories that could not be classified:", err=True)
-        for msg in failures:
-            typer.echo(f"  - {msg}", err=True)
-        if raise_on_failure:
-            raise typer.Exit(code=1)
+    """Print combined results for all repositories; exit 1 if any failed."""
+    typer.echo(format_combined_results(repo_results, output_format))  # type: ignore
+    if any(not r.success for r in repo_results):
+        raise typer.Exit(code=1)
 
 
 # ---------------------------------------------------------------------------
@@ -512,26 +515,20 @@ def classify(
             default_end=end,
         )
 
-        successes: list[str] = []
-        failures: list[str] = []
-
-        for target in targets:
-            ok, message = _detect_single(
+        repo_results = [
+            _detect_single(
                 target.name,
                 target.threshold if target.threshold is not None else threshold,
                 target.min_samples if target.min_samples is not None else min_samples,
-                output_format,
                 verbose,
                 target.start,
                 target.end,
                 exclude_primary_merged=exclude_primary_merged,
             )
-            if ok:
-                successes.append(message)
-            else:
-                failures.append(message)
+            for target in targets
+        ]
 
-        _print_detect_results(successes, failures)
+        _print_detect_results(repo_results, output_format)
 
     except (FileNotFoundError, ValueError) as e:
         typer.echo(f"Error: {e}", err=True)
@@ -685,26 +682,20 @@ def fetch_and_classify(
                     verbose,
                 )
 
-        successes: list[str] = []
-        failures: list[str] = []
-
-        for target in targets:
-            ok, message = _detect_single(
+        repo_results = [
+            _detect_single(
                 target.name,
                 target.threshold if target.threshold is not None else threshold,
                 target.min_samples if target.min_samples is not None else min_samples,
-                output_format,
                 verbose,
                 target.start,
                 target.end,
                 exclude_primary_merged=exclude_primary_merged,
             )
-            if ok:
-                successes.append(message)
-            else:
-                failures.append(message)
+            for target in targets
+        ]
 
-        _print_detect_results(successes, failures)
+        _print_detect_results(repo_results, output_format)
 
     except (FileNotFoundError, ValueError) as e:
         typer.echo(f"Error: {e}", err=True)
