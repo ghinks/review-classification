@@ -87,7 +87,7 @@ def test_outlier_detection_with_extreme_pr(test_session: Session) -> None:
 
     # Detect outliers
     results = detect_outliers_for_repository(
-        test_session, repo_name, min_sample_size=30
+        test_session, repo_name, min_sample_size=10
     )
 
     # Verify outlier detected
@@ -169,8 +169,8 @@ def test_insufficient_data_error_raised(test_session: Session) -> None:
     test_session.commit()
 
     # Should raise InsufficientDataError
-    with pytest.raises(InsufficientDataError, match="at least 30"):
-        detect_outliers_for_repository(test_session, repo_name, min_sample_size=30)
+    with pytest.raises(InsufficientDataError, match="at least 10"):
+        detect_outliers_for_repository(test_session, repo_name, min_sample_size=10)
 
 
 def test_outlier_detection_with_classify_date_range(test_session: Session) -> None:
@@ -251,7 +251,7 @@ def test_outlier_detection_with_classify_date_range(test_session: Session) -> No
     results = detect_outliers_for_repository(
         test_session,
         repo_name,
-        min_sample_size=30,
+        min_sample_size=10,
         classify_start=classify_start,
         classify_end=classify_end,
     )
@@ -342,7 +342,7 @@ def test_classify_window_is_baseline_for_stats(test_session: Session) -> None:
     results_with_window = detect_outliers_for_repository(
         test_session,
         repo_name,
-        min_sample_size=30,
+        min_sample_size=10,
         classify_start=classify_start,
         classify_end=classify_end,
     )
@@ -359,7 +359,7 @@ def test_classify_window_is_baseline_for_stats(test_session: Session) -> None:
     results_no_window = detect_outliers_for_repository(
         test_session,
         repo_name,
-        min_sample_size=30,
+        min_sample_size=10,
     )
     pr_no_window = next(r for r in results_no_window if r.pr_number == 100)
 
