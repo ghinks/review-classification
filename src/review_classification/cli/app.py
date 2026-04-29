@@ -402,14 +402,16 @@ def fetch(
             default_collate_end=collate_end,
         )
 
+        effective_reset = reset_db
         for target in targets:
             _fetch_single(
                 target.name,
                 target.collate_start,
                 target.collate_end,
-                reset_db,
+                effective_reset,
                 verbose,
             )
+            effective_reset = False
 
     except (FileNotFoundError, ValueError) as e:
         typer.echo(f"Error: {e}", err=True)
@@ -658,6 +660,7 @@ def fetch_and_classify(
 
         init_db()
 
+        effective_reset = reset_db
         for target in targets:
             session = get_session()
             try:
@@ -678,9 +681,10 @@ def fetch_and_classify(
                     target.name,
                     target.collate_start,
                     target.collate_end,
-                    reset_db,
+                    effective_reset,
                     verbose,
                 )
+                effective_reset = False
 
         repo_results = [
             _detect_single(
