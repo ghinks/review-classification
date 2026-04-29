@@ -52,7 +52,6 @@ Integration tests require a valid `GITHUB_TOKEN` or an authenticated `gh` CLI se
 uv run review-classify --help
 uv run review-classify fetch --repo owner/repo
 uv run review-classify classify --repo owner/repo
-uv run review-classify fetch-and-classify --repo owner/repo
 ```
 
 You can also run the module directly with:

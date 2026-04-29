@@ -94,12 +94,4 @@ available from GitHub PR review data.
 - This helps focus on PRs that may have been abandoned or need
   attention.
 
-### Step 5 — Add a combined `fetch-and-classify` command
-
-- Provide a convenience command that runs both fetch and classify in
-  one step.
-- If PR data already exists in the local SQLite database, detect and
-  skip the fetch step to save time and API calls.
-
-
 <!-- End of reformatted document -->

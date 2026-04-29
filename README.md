@@ -23,7 +23,7 @@ uv sync
 
 ## Usage
 
-The tool has three commands: **fetch**, **classify**, and **fetch-and-classify**.
+The tool has two commands: **fetch** and **classify**.
 
 ### 1. Configure GitHub Token
 
@@ -132,43 +132,6 @@ Pass `--exclude-primary-merged` to restrict analysis to PRs that were **not** me
 uv run review-classify classify --repo owner/repo --exclude-primary-merged
 ```
 
-### 4. `fetch-and-classify` — fetch and classify in one step
-
-Combines both steps. If PR data already exists in the local database for a repository, the fetch is skipped automatically. Use `--reset-db` to force a fresh fetch.
-
-```bash
-# Fetch (if needed) and classify in one command
-uv run review-classify fetch-and-classify --repo owner/repo
-
-# With explicit date ranges for both collation and classification
-uv run review-classify fetch-and-classify --repo owner/repo \
-  --collate-start 2024-01-01 --collate-end 2024-12-31 \
-  --start 2024-01-01 --end 2024-06-30
-
-# Force a fresh fetch even if data already exists
-uv run review-classify fetch-and-classify --repo owner/repo --reset-db
-
-# Exclude primary-branch PRs from the classification
-uv run review-classify fetch-and-classify --repo owner/repo \
-  --exclude-primary-merged
-```
-
-| Option | Description |
-| --- | --- |
-| `--repo` / `-r` | GitHub repository (owner/repo). Can be specified multiple times. |
-| `--org` / `-o` | GitHub organization. Can be specified multiple times. |
-| `--config` / `-c` | Path to a TOML config file. |
-| `--collate-start` | Start date for PR collation range (YYYY-MM-DD). |
-| `--collate-end` | End date for PR collation range (YYYY-MM-DD). |
-| `--start` | Start of the classification window (YYYY-MM-DD). |
-| `--end` | End of the classification window (YYYY-MM-DD). |
-| `--threshold` / `-t` | Z-score threshold for flagging an outlier. Default: `2.0`. |
-| `--min-samples` | Minimum number of PRs required for analysis. Default: `30`. |
-| `--format` / `-f` | Output format: `table` (default), `json`, or `csv`. |
-| `--exclude-primary-merged` | Exclude PRs whose base branch is `main` or `master`. |
-| `--reset-db` | Delete existing data and force a fresh fetch. |
-| `--verbose` / `-v` | Print progress details. |
-
 ### Per-repository analysis
 
 Outlier detection is always **scoped to a single repository**. When you target multiple repositories (via `--org`, multiple `--repo` flags, or a config file), each repository is analysed independently:
@@ -195,24 +158,20 @@ When processing multiple repositories, per-repo results are **not** printed as t
 ### End-to-end example
 
 ```bash
-# Option A — two explicit steps
+# Fetch the data you want to analyze
 uv run review-classify fetch --repo owner/repo \
   --collate-start 2024-01-01 --collate-end 2024-12-31
 
+# Classify against a historical baseline window
 uv run review-classify classify --repo owner/repo \
   --start 2024-01-01 \
   --end   2024-12-31 \
   --format table
-
-# Option B — single combined command
-uv run review-classify fetch-and-classify --repo owner/repo \
-  --collate-start 2024-01-01 --collate-end 2024-12-31 \
-  --start 2024-01-01 --end 2024-12-31
 ```
 
 ## Configuration file
 
-`fetch`, `classify`, and `fetch-and-classify` all accept `--config <file.toml>` as an alternative to passing `--repo` / `--org` flags. The file is TOML and supports three sections:
+`fetch` and `classify` both accept `--config <file.toml>` as an alternative to passing `--repo` / `--org` flags. The file is TOML and supports three sections:
 
 | Section | Purpose |
 | --- | --- |
