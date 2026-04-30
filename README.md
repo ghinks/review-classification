@@ -43,7 +43,16 @@ When running from source, prefix all commands with `uv run` (e.g., `uv run revie
 
 ## Usage
 
-The tool has two commands: **fetch** and **classify**.
+The tool has two commands: **fetch** and **classify**, designed to be run separately.
+
+**Why two steps?**
+
+`fetch` calls the GitHub API and stores the raw PR data in a local SQLite database (`review_classification.db`). `classify` reads exclusively from that database — no network calls. This means you fetch once (which can take time for large organisations or wide date ranges) and then run `classify` as many times as you like, experimenting with different thresholds, date windows, or output formats, all at local speed.
+
+```
+GitHub API  ──► fetch ──► review_classification.db ──► classify ──► results
+                (once)       (persisted locally)       (fast, repeatable)
+```
 
 > **Note**: Examples below use `uv run review-classify` (source installs). If you installed from PyPI, omit the `uv run` prefix and call `review-classify` directly.
 
