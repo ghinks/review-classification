@@ -13,7 +13,25 @@ A CLI tool to identify pull request outliers in GitHub repositories using Z-scor
 
 ## Installation
 
-**Prerequisites**: Python 3.12+, [uv](https://github.com/astral-sh/uv)
+**Prerequisites**: Python 3.12+
+
+### From PyPI (recommended)
+
+```bash
+pip install review-classification
+```
+
+Or, if you use [uv](https://github.com/astral-sh/uv):
+
+```bash
+uv tool install review-classification
+```
+
+Once installed, the `review-classify` command is available in your terminal.
+
+### From source (development)
+
+**Prerequisites**: [uv](https://github.com/astral-sh/uv)
 
 ```bash
 git clone https://github.com/ghinks/review-classification.git
@@ -21,9 +39,13 @@ cd review-classification
 uv sync
 ```
 
+When running from source, prefix all commands with `uv run` (e.g., `uv run review-classify fetch ...`).
+
 ## Usage
 
 The tool has two commands: **fetch** and **classify**.
+
+> **Note**: Examples below use `uv run review-classify` (source installs). If you installed from PyPI, omit the `uv run` prefix and call `review-classify` directly.
 
 ### 1. Configure GitHub Token
 
