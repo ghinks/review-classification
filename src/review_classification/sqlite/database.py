@@ -123,11 +123,12 @@ def get_repos_for_org(org_name: str) -> list[str]:
     Avoids any network call — resolves org repos entirely from fetched data.
     """
     with Session(engine) as session:
-        statement = select(PullRequest).where(
-            col(PullRequest.repository_name).like(f"{org_name}/%")
+        statement = (
+            select(col(PullRequest.repository_name))
+            .where(col(PullRequest.repository_name).like(f"{org_name}/%"))
+            .distinct()
         )
-        prs = list(session.exec(statement).all())
-        return sorted({pr.repository_name for pr in prs})
+        return sorted(session.exec(statement).all())
 
 
 def get_outlier_scores(
