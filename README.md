@@ -124,33 +124,42 @@ uv run review-classify classify --repo owner/repo --exclude-primary-merged
 | `--threshold` / `-t` | Z-score threshold for flagging an outlier. Default: `2.0`. |
 | `--min-samples` | Minimum number of PRs required for analysis. Default: `30`. |
 | `--format` / `-f` | Output format: `table` (default), `json`, or `csv`. |
-| `--start` | Start of the classification window (YYYY-MM-DD). |
-| `--end` | End of the classification window (YYYY-MM-DD). |
+| `--start` | Start of the **statistics baseline** window (YYYY-MM-DD). PRs merged before this date are excluded from the baseline. |
+| `--end` | End of the **statistics baseline** window (YYYY-MM-DD). PRs merged **after** this date are the ones evaluated and reported as outliers. |
 | `--exclude-primary-merged` | Exclude PRs whose base branch is `main` or `master`. |
 | `--verbose` / `-v` | Print progress details. |
 
-#### Classification window (`--start` / `--end`)
+#### Statistics baseline vs. evaluation period (`--start` / `--end`)
 
-By default all stored PRs feed both the baseline statistics and the outlier evaluation. This is problematic: an unusually large PR inflates the mean and standard deviation it is measured against, masking itself as normal.
+`--start` and `--end` define the **statistics baseline** — the historical window used to compute means and standard deviations. PRs merged **after** `--end` are the ones that get evaluated against those statistics and reported as outliers.
 
-Use `--start` and `--end` to define a historical baseline window. Statistics are computed from PRs merged **within** that window; only PRs merged **after** `--end` are evaluated and reported.
+This separation is important: without it, an unusually large PR would inflate the very statistics it is measured against, masking itself as normal.
 
 ```
-[--start ──────────────── --end]   >end
-      ↑                     ↑          ↑
-baseline start         baseline end  PRs evaluated here
+fetch window: [--collate-start ─────────────────────────────── --collate-end]
+                      │                                               │
+classify:     [--start ──── --end]         (evaluated & reported)    │
+                   ↑            ↑        ↑────────────────────────────┘
+              baseline      baseline    PRs here are classified as outliers
+               starts         ends     (must also be covered by the fetch window)
 ```
+
+> **Important**: the `fetch` window (`--collate-start` / `--collate-end`) must cover **both** the baseline period and the period after `--end` where outliers will be evaluated. If you only fetch up to your classify `--end` date, there will be no PRs left to report.
 
 ```bash
-# Use Jan–Jun 2024 as the baseline; evaluate PRs merged after 2024-06-30
+# Step 1: fetch covers Jan 2024 → Dec 2024 (baseline + evaluation period)
+uv run review-classify fetch --repo owner/repo \
+  --collate-start 2024-01-01 --collate-end 2024-12-31
+
+# Step 2: classify — Jan–Sep 2024 is the baseline; Oct–Dec 2024 PRs are evaluated
 uv run review-classify classify --repo owner/repo \
   --start 2024-01-01 \
-  --end   2024-06-30
+  --end   2024-09-30
 
 # Same, with stricter threshold and JSON output
 uv run review-classify classify --repo owner/repo \
   --start 2024-01-01 \
-  --end   2024-06-30 \
+  --end   2024-09-30 \
   --threshold 2.5 \
   --format json > outliers.json
 ```
@@ -188,15 +197,18 @@ When processing multiple repositories, per-repo results are **not** printed as t
 
 ### End-to-end example
 
+The fetch window must reach further than the classify `--end` date, because PRs merged after `--end` are the ones that get evaluated.
+
 ```bash
-# Fetch the data you want to analyze
+# Step 1: fetch a full year — this covers both the baseline and the evaluation period
 uv run review-classify fetch --repo owner/repo \
   --collate-start 2024-01-01 --collate-end 2024-12-31
 
-# Classify against a historical baseline window
+# Step 2: classify — Jan–Sep 2024 is used as the statistics baseline;
+#          PRs merged Oct–Dec 2024 are evaluated and reported as outliers
 uv run review-classify classify --repo owner/repo \
   --start 2024-01-01 \
-  --end   2024-12-31 \
+  --end   2024-09-30 \
   --format table
 ```
 
