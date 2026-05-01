@@ -44,7 +44,7 @@ def main(
 # ---------------------------------------------------------------------------
 
 
-def _fetch_single(
+def _fetch_repo(
     repo_name: str,
     start_date: str | None,
     end_date: str | None,
@@ -95,7 +95,7 @@ def _fetch_single(
     typer.echo(f"Successfully saved {len(prs)} PRs for {repo.owner}/{repo.name}.")
 
 
-def _detect_single(
+def _classify_repo(
     repo_name: str,
     threshold: float,
     min_samples: int,
@@ -403,7 +403,7 @@ def fetch(
         )
 
         for target in targets:
-            _fetch_single(
+            _fetch_repo(
                 target.name,
                 target.collate_start,
                 target.collate_end,
@@ -516,7 +516,7 @@ def classify(
         )
 
         repo_results = [
-            _detect_single(
+            _classify_repo(
                 target.name,
                 target.threshold if target.threshold is not None else threshold,
                 target.min_samples if target.min_samples is not None else min_samples,
