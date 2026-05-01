@@ -16,6 +16,7 @@ class RepoConfig:
     min_samples: int | None = None
     start: str | None = None
     end: str | None = None
+    show_after: str | None = None
 
 
 @dataclass
@@ -29,6 +30,7 @@ class OrgConfig:
     min_samples: int | None = None
     start: str | None = None
     end: str | None = None
+    show_after: str | None = None
     exclude_repos: list[str] = field(default_factory=list)
 
 
@@ -49,6 +51,7 @@ class MultiRepoConfig:
     min_samples: int = 30
     start: str | None = None
     end: str | None = None
+    show_after: str | None = None
 
     def resolve(self, repo: RepoConfig) -> RepoConfig:
         """Return a RepoConfig with global defaults applied for unset fields.
@@ -77,6 +80,9 @@ class MultiRepoConfig:
             ),
             start=repo.start if repo.start is not None else self.start,
             end=repo.end if repo.end is not None else self.end,
+            show_after=repo.show_after
+            if repo.show_after is not None
+            else self.show_after,
         )
 
 
@@ -136,6 +142,7 @@ def parse_config_file(path: Path) -> MultiRepoConfig:
             min_samples=int(raw_defaults.get("min_samples", 30)),
             start=_optional_str(raw_defaults, "start"),
             end=_optional_str(raw_defaults, "end"),
+            show_after=_optional_str(raw_defaults, "show_after"),
         )
     except (TypeError, ValueError) as e:
         raise ValueError(f"Invalid value in [defaults]: {e}") from e
@@ -166,6 +173,7 @@ def parse_config_file(path: Path) -> MultiRepoConfig:
                 ),
                 start=_optional_str(raw_repo, "start"),
                 end=_optional_str(raw_repo, "end"),
+                show_after=_optional_str(raw_repo, "show_after"),
             )
         except (TypeError, ValueError) as e:
             raise ValueError(
@@ -208,6 +216,7 @@ def parse_config_file(path: Path) -> MultiRepoConfig:
                 ),
                 start=_optional_str(raw_org, "start"),
                 end=_optional_str(raw_org, "end"),
+                show_after=_optional_str(raw_org, "show_after"),
                 exclude_repos=[str(x) for x in exclude],
             )
         except (TypeError, ValueError) as e:

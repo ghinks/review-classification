@@ -103,6 +103,7 @@ def _detect_single(
     classify_start: str | None,
     classify_end: str | None,
     exclude_primary_merged: bool = False,
+    show_after: str | None = None,
 ) -> RepoClassifyResult:
     """Run outlier detection for a single repository."""
     repo = GitHubRepo.from_string(repo_name)
@@ -110,6 +111,7 @@ def _detect_single(
 
     classify_start_dt: datetime | None = None
     classify_end_dt: datetime | None = None
+    show_after_dt: datetime | None = None
 
     if classify_start:
         classify_start_dt = datetime.strptime(classify_start, "%Y-%m-%d").replace(
@@ -119,6 +121,8 @@ def _detect_single(
         classify_end_dt = datetime.strptime(classify_end, "%Y-%m-%d").replace(
             hour=23, minute=59, second=59, tzinfo=UTC
         )
+    if show_after:
+        show_after_dt = datetime.strptime(show_after, "%Y-%m-%d").replace(tzinfo=UTC)
 
     exclude_branches = _PRIMARY_BRANCHES if exclude_primary_merged else None
 
@@ -130,6 +134,8 @@ def _detect_single(
             start_label = classify_start or "unbounded"
             end_label = classify_end or "unbounded"
             typer.echo(f"Classification window: {start_label} to {end_label}")
+        if show_after_dt:
+            typer.echo(f"Showing outliers merged after: {show_after}")
         if exclude_primary_merged:
             branches = sorted(_PRIMARY_BRANCHES)
             typer.echo(f"Excluding PRs merged into primary branches: {branches}")
@@ -192,6 +198,11 @@ def _detect_single(
 
         save_outlier_scores(session, full_name, results, sample_size)
 
+        if show_after_dt:
+            results = [
+                r for r in results if r.merged_at and r.merged_at > show_after_dt
+            ]
+
         outliers = [r for r in results if r.is_outlier]
 
         if verbose:
@@ -243,6 +254,7 @@ def _resolve_targets(
     default_min_samples: int | None = None,
     default_start: str | None = None,
     default_end: str | None = None,
+    default_show_after: str | None = None,
 ) -> list[RepoConfig]:
     """Resolve CLI arguments and config file into a concrete list of repositories."""
     from ..queries.github_client import get_org_repos
@@ -293,6 +305,11 @@ def _resolve_targets(
                             org_cfg.start if org_cfg.start is not None else multi.start
                         ),
                         end=(org_cfg.end if org_cfg.end is not None else multi.end),
+                        show_after=(
+                            org_cfg.show_after
+                            if org_cfg.show_after is not None
+                            else multi.show_after
+                        ),
                     )
                     add_repo(rc)
 
@@ -306,6 +323,7 @@ def _resolve_targets(
             min_samples=default_min_samples,
             start=default_start,
             end=default_end,
+            show_after=default_show_after,
         )
         add_repo(rc)
 
@@ -321,6 +339,7 @@ def _resolve_targets(
                 min_samples=default_min_samples,
                 start=default_start,
                 end=default_end,
+                show_after=default_show_after,
             )
             add_repo(rc)
 
@@ -481,6 +500,16 @@ def classify(
             help="Exclude PRs merged into the primary branch (main/master).",
         ),
     ] = False,
+    show_after: Annotated[
+        str | None,
+        typer.Option(
+            "--show-after",
+            help=(
+                "Only display outliers merged after this date (YYYY-MM-DD). "
+                "Stats baseline is unaffected — use this to focus output on recent PRs."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Classify previously fetched PRs using z-score outlier analysis.
 
@@ -513,6 +542,7 @@ def classify(
             default_min_samples=min_samples,
             default_start=start,
             default_end=end,
+            default_show_after=show_after,
         )
 
         repo_results = [
@@ -524,6 +554,7 @@ def classify(
                 target.start,
                 target.end,
                 exclude_primary_merged=exclude_primary_merged,
+                show_after=target.show_after,
             )
             for target in targets
         ]
