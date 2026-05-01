@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 
 from review_classification.sqlite.models import PullRequest
@@ -27,7 +28,7 @@ def _make_pr(repo_name: str, number: int) -> PullRequest:
 
 
 @pytest.fixture()
-def patched_engine(monkeypatch: pytest.MonkeyPatch):
+def patched_engine(monkeypatch: pytest.MonkeyPatch) -> Engine:
     """Replace the module-level engine with an in-memory SQLite engine."""
     import review_classification.sqlite.database as db_module
 
@@ -37,7 +38,7 @@ def patched_engine(monkeypatch: pytest.MonkeyPatch):
     return test_engine
 
 
-def test_get_repos_for_org_returns_correct_repos(patched_engine) -> None:
+def test_get_repos_for_org_returns_correct_repos(patched_engine: Engine) -> None:
     """get_repos_for_org returns only repos belonging to the requested org."""
     from review_classification.sqlite.database import get_repos_for_org
 
@@ -51,7 +52,7 @@ def test_get_repos_for_org_returns_correct_repos(patched_engine) -> None:
     assert result == ["my-org/repo-a", "my-org/repo-b"]
 
 
-def test_get_repos_for_org_no_prefix_collision(patched_engine) -> None:
+def test_get_repos_for_org_no_prefix_collision(patched_engine: Engine) -> None:
     """org name prefix must be followed by '/' — no false matches for similar names."""
     from review_classification.sqlite.database import get_repos_for_org
 
@@ -64,14 +65,14 @@ def test_get_repos_for_org_no_prefix_collision(patched_engine) -> None:
     assert get_repos_for_org("my-org-extra") == ["my-org-extra/repo-b"]
 
 
-def test_get_repos_for_org_empty_when_no_data(patched_engine) -> None:  # noqa: ARG001
+def test_get_repos_for_org_empty_when_no_data(patched_engine: Engine) -> None:  # noqa: ARG001
     """Returns an empty list when no PRs have been fetched for the org."""
     from review_classification.sqlite.database import get_repos_for_org
 
     assert get_repos_for_org("unknown-org") == []
 
 
-def test_get_repos_for_org_deduplicates(patched_engine) -> None:
+def test_get_repos_for_org_deduplicates(patched_engine: Engine) -> None:
     """Multiple PRs from the same repo are collapsed to one entry."""
     from review_classification.sqlite.database import get_repos_for_org
 
