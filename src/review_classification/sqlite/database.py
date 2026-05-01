@@ -117,6 +117,19 @@ def get_pr_features(pr_id: int) -> PRFeatures | None:
         return session.exec(statement).first()
 
 
+def get_repos_for_org(org_name: str) -> list[str]:
+    """Return distinct repository names stored in the DB for the given org/owner.
+
+    Avoids any network call — resolves org repos entirely from fetched data.
+    """
+    with Session(engine) as session:
+        statement = select(PullRequest).where(
+            PullRequest.repository_name.like(f"{org_name}/%")  # type: ignore[union-attr]
+        )
+        prs = list(session.exec(statement).all())
+        return sorted({pr.repository_name for pr in prs})
+
+
 def get_outlier_scores(
     repository_name: str, outliers_only: bool = True
 ) -> list[PROutlierScore]:
