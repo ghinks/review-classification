@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from sqlmodel import Session, SQLModel, create_engine, delete, select
+from sqlmodel import Session, SQLModel, col, create_engine, delete, select
 
 from .models import PRFeatures, PROutlierScore, PullRequest
 
@@ -115,6 +115,20 @@ def get_pr_features(pr_id: int) -> PRFeatures | None:
     with Session(engine) as session:
         statement = select(PRFeatures).where(PRFeatures.pull_request_id == pr_id)
         return session.exec(statement).first()
+
+
+def get_repos_for_org(org_name: str) -> list[str]:
+    """Return distinct repository names stored in the DB for the given org/owner.
+
+    Avoids any network call — resolves org repos entirely from fetched data.
+    """
+    with Session(engine) as session:
+        statement = (
+            select(col(PullRequest.repository_name))
+            .where(col(PullRequest.repository_name).like(f"{org_name}/%"))
+            .distinct()
+        )
+        return sorted(session.exec(statement).all())
 
 
 def get_outlier_scores(

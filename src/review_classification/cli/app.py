@@ -243,9 +243,18 @@ def _resolve_targets(
     default_min_samples: int | None = None,
     default_start: str | None = None,
     default_end: str | None = None,
+    use_db_for_orgs: bool = False,
 ) -> list[RepoConfig]:
-    """Resolve CLI arguments and config file into a concrete list of repositories."""
-    from ..queries.github_client import get_org_repos
+    """Resolve CLI arguments and config file into a concrete list of repositories.
+
+    When use_db_for_orgs=True, org → repo expansion is done by querying the
+    local database instead of calling the GitHub API (used by classify so that
+    the command makes no network calls).
+    """
+    if use_db_for_orgs:
+        from ..sqlite.database import get_repos_for_org as _get_org_repos
+    else:
+        from ..queries.github_client import get_org_repos as _get_org_repos
 
     resolved_repos: dict[str, RepoConfig] = {}
 
@@ -263,7 +272,7 @@ def _resolve_targets(
             add_repo(multi.resolve(repo_cfg))
 
         for org_cfg in multi.organizations:
-            org_repos = get_org_repos(org_cfg.name)
+            org_repos = _get_org_repos(org_cfg.name)
             for r in org_repos:
                 if r not in org_cfg.exclude_repos:
                     # Create a RepoConfig inheriting from org_cfg, then global
@@ -311,7 +320,7 @@ def _resolve_targets(
 
     # Add explicit CLI orgs
     for o in orgs:
-        org_repos = get_org_repos(o)
+        org_repos = _get_org_repos(o)
         for r in org_repos:
             rc = RepoConfig(
                 name=r,
@@ -513,6 +522,7 @@ def classify(
             default_min_samples=min_samples,
             default_start=start,
             default_end=end,
+            use_db_for_orgs=True,
         )
 
         repo_results = [
