@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from sqlmodel import Session, SQLModel, create_engine, delete, select
+from sqlmodel import Session, SQLModel, col, create_engine, delete, select
 
 from .models import PRFeatures, PROutlierScore, PullRequest
 
@@ -124,7 +124,7 @@ def get_repos_for_org(org_name: str) -> list[str]:
     """
     with Session(engine) as session:
         statement = select(PullRequest).where(
-            PullRequest.repository_name.like(f"{org_name}/%")  # type: ignore[union-attr]
+            col(PullRequest.repository_name).like(f"{org_name}/%")
         )
         prs = list(session.exec(statement).all())
         return sorted({pr.repository_name for pr in prs})

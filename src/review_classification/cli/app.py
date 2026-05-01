@@ -254,9 +254,7 @@ def _resolve_targets(
     if use_db_for_orgs:
         from ..sqlite.database import get_repos_for_org as _get_org_repos
     else:
-        from ..queries.github_client import (
-            get_org_repos as _get_org_repos,  # type: ignore[assignment]
-        )
+        from ..queries.github_client import get_org_repos as _get_org_repos
 
     resolved_repos: dict[str, RepoConfig] = {}
 
