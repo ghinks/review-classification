@@ -114,11 +114,6 @@ uv run review-classify classify --repo owner/repo --format json > outliers.json
 
 # Exclude PRs merged into the primary branch (main/master)
 uv run review-classify classify --repo owner/repo --exclude-primary-merged
-
-# Show only outliers merged in the last two weeks (stats baseline unchanged)
-uv run review-classify classify --repo owner/repo \
-  --start 2024-01-01 --end 2024-11-30 \
-  --show-after 2024-12-15
 ```
 
 | Option | Description |
@@ -132,7 +127,6 @@ uv run review-classify classify --repo owner/repo \
 | `--start` | Start of the classification window (YYYY-MM-DD). |
 | `--end` | End of the classification window (YYYY-MM-DD). |
 | `--exclude-primary-merged` | Exclude PRs whose base branch is `main` or `master`. |
-| `--show-after` | Only display outliers merged after this date (YYYY-MM-DD). Stats baseline is unaffected. |
 | `--verbose` / `-v` | Print progress details. |
 
 #### Classification window (`--start` / `--end`)
@@ -167,26 +161,6 @@ Pass `--exclude-primary-merged` to restrict analysis to PRs that were **not** me
 
 ```bash
 uv run review-classify classify --repo owner/repo --exclude-primary-merged
-```
-
-#### Filtering output to recent PRs (`--show-after`)
-
-`--show-after YYYY-MM-DD` filters the **displayed** outliers to only those merged after the given date. The stats baseline (`--start` / `--end`) is computed from the full window as normal — only the output is narrowed.
-
-This is the right tool when you have a long history in the database but only want to act on recent outliers. For example, compute stats from a 6-month baseline but display only the last two weeks:
-
-```
-[--start ──────────────────── --end]   >end … [--show-after] … today
-      ↑                          ↑                    ↑
- baseline start            baseline end        only show from here
-```
-
-```bash
-# Compute stats from Jan–Nov 2024; display only outliers merged after 2024-12-15
-uv run review-classify classify --repo owner/repo \
-  --start 2024-01-01 \
-  --end   2024-11-30 \
-  --show-after 2024-12-15
 ```
 
 ### Per-repository analysis
@@ -248,7 +222,6 @@ threshold     = 2.0
 min_samples   = 30
 start         = "2024-01-01"
 end           = "2024-06-30"
-show_after    = "2024-12-15"   # only display outliers merged after this date
 
 # Individual repositories ─────────────────────────────────────────────────────
 
