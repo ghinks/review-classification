@@ -46,6 +46,26 @@ jobs:
           NEW_VERSION=$(uv version --short)
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Update Changelog
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          DATE=$(date +%Y-%m-%d)
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            COMMITS=$(git log --oneline --pretty=format:"- %s")
+          else
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --oneline --pretty=format:"- %s")
+          fi
+
+          # Prepare the new section
+          echo -e "\n## [$VERSION] - $DATE\n$COMMITS" > new_changelog_entry.md
+
+          # Prepend after "## [Unreleased]"
+          sed -i "/## \[Unreleased\]/r new_changelog_entry.md" CHANGELOG.md
+
+          rm new_changelog_entry.md
+
       - name: Build
         run: uv build
 
@@ -61,7 +81,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml uv.lock
+          git add pyproject.toml uv.lock CHANGELOG.md
           git commit -m "chore: bump version to ${{ steps.bump.outputs.version }} [skip ci]"
           git push
 
