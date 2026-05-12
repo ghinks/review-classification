@@ -51,6 +51,7 @@ review_classification = ["uv"]
 
 [project.urls]
 Repository = "https://github.com/ghinks/review-classification"
+Changelog = "https://github.com/ghinks/review-classification/blob/main/CHANGELOG.md"
 
 [project.scripts]
 review-classify = "review_classification.main:main"
