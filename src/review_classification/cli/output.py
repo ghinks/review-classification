@@ -29,13 +29,13 @@ class RepoClassifyResult:
 
 def format_combined_results(
     repo_results: list[RepoClassifyResult],
-    format_type: Literal["table", "json", "csv"] = "table",
+    format_type: Literal["table", "json", "csv", "html"] = "table",
 ) -> str:
     """Format classification results for one or more repositories.
 
     Args:
         repo_results: Results for each repository, in any order.
-        format_type: Output format (table, json, or csv).
+        format_type: Output format (table, json, csv, or html).
 
     Returns:
         Formatted string output.
@@ -46,6 +46,9 @@ def format_combined_results(
         return _format_combined_json(sorted_repos)
     elif format_type == "csv":
         return _format_combined_csv(sorted_repos)
+    elif format_type == "html":
+        from .html_report import generate_html_report
+        return generate_html_report(sorted_repos)
     else:
         return _format_combined_table(sorted_repos)
 

@@ -464,7 +464,7 @@ def classify(
     ] = 30,
     output_format: Annotated[
         str,
-        typer.Option("--format", "-f", help="Output format: table, json, csv"),
+        typer.Option("--format", "-f", help="Output format: table, json, csv, or html"),
     ] = "table",
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Enable verbose output")
@@ -509,6 +509,14 @@ def classify(
     if not config and not repo_list and not org_list:
         typer.echo(
             "Error: Provide at least one --repo, --org, or a --config file.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    if output_format not in ["table", "json", "csv", "html"]:
+        typer.echo(
+            f"Error: Invalid output format '{output_format}'. "
+            "Choose from: table, json, csv, html",
             err=True,
         )
         raise typer.Exit(code=1)
