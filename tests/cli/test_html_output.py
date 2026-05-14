@@ -2,8 +2,6 @@
 
 from datetime import UTC, datetime
 
-import pytest
-
 from review_classification.analysis.outlier_detector import OutlierResult
 from review_classification.cli.html_report import generate_html_report
 from review_classification.cli.output import RepoClassifyResult
