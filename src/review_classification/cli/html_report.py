@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 import jinja2
 
+from ..analysis.outlier_detector import OutlierResult
 from .output import RepoClassifyResult
 
 
@@ -22,7 +23,7 @@ def generate_html_report(repo_results: list[RepoClassifyResult]) -> str:
     return template.render(**data)
 
 
-def _prepare_template_data(repo_results: list[RepoClassifyResult]) -> dict:
+def _prepare_template_data(repo_results: list[RepoClassifyResult]) -> dict[str, object]:
     """Transform RepoClassifyResult into template-friendly format."""
     successful_repos = [r for r in repo_results if r.success]
     failed_repos = [r for r in repo_results if not r.success]
@@ -45,7 +46,7 @@ def _prepare_template_data(repo_results: list[RepoClassifyResult]) -> dict:
     }
 
 
-def _format_repo(repo: RepoClassifyResult) -> dict:
+def _format_repo(repo: RepoClassifyResult) -> dict[str, object]:
     """Format a single repository for the template."""
     outliers = sorted(
         (r for r in repo.results if r.is_outlier),
@@ -63,7 +64,7 @@ def _format_repo(repo: RepoClassifyResult) -> dict:
     }
 
 
-def _format_outlier(repo_name: str, outlier) -> dict:  # noqa: ANN001
+def _format_outlier(repo_name: str, outlier: OutlierResult) -> dict[str, object]:
     """Format a single outlier for the template."""
     return {
         "pr_number": outlier.pr_number,
