@@ -221,9 +221,10 @@ def _classify_repo(
 def _print_detect_results(
     repo_results: list[RepoClassifyResult],
     output_format: str,
+    threshold: float = 2.0,
 ) -> None:
     """Print combined results for all repositories; exit 1 if any failed."""
-    typer.echo(format_combined_results(repo_results, output_format))  # type: ignore
+    typer.echo(format_combined_results(repo_results, output_format, threshold))  # type: ignore
     if any(not r.success for r in repo_results):
         raise typer.Exit(code=1)
 
@@ -546,7 +547,7 @@ def classify(
             for target in targets
         ]
 
-        _print_detect_results(repo_results, output_format)
+        _print_detect_results(repo_results, output_format, threshold)
 
     except (FileNotFoundError, ValueError) as e:
         typer.echo(f"Error: {e}", err=True)
