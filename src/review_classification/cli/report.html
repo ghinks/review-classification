@@ -290,6 +290,12 @@
         </header>
 
         <div class="section">
+            <h2>About This Report</h2>
+            <p>This report identifies pull requests that are statistical outliers within each repository. Each PR is scored across multiple metrics — lines added, lines deleted, files changed, review comments, comment density, and review duration — and a <a href="https://en.wikipedia.org/wiki/Standard_score" target="_blank" rel="noopener noreferrer">z-score</a> is calculated for each metric relative to the repository's historical average.</p>
+            <p style="margin-top: 1rem;">A PR is flagged as an outlier when <strong>any</strong> of its metric z-scores exceeds the threshold of <strong>{{ threshold }} standard deviations</strong> from the mean. The <em>Max Z-Score</em> column shows the highest absolute z-score across all metrics for that PR. The <em>Outlier Features</em> column lists which specific metrics triggered the flag.</p>
+        </div>
+
+        <div class="section">
             <h2>📋 Results by Repository</h2>
 
             {% if repositories %}

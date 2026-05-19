@@ -9,21 +9,26 @@ from ..analysis.outlier_detector import OutlierResult
 from .output import RepoClassifyResult
 
 
-def generate_html_report(repo_results: list[RepoClassifyResult]) -> str:
+def generate_html_report(
+    repo_results: list[RepoClassifyResult], threshold: float = 2.0
+) -> str:
     """Generate a standalone HTML report from classification results.
 
     Args:
         repo_results: List of repository classification results
+        threshold: Z-score threshold used during outlier detection
 
     Returns:
         HTML string ready to be written to a file
     """
-    data = _prepare_template_data(repo_results)
+    data = _prepare_template_data(repo_results, threshold)
     template = _get_template()
     return template.render(**data)
 
 
-def _prepare_template_data(repo_results: list[RepoClassifyResult]) -> dict[str, object]:
+def _prepare_template_data(
+    repo_results: list[RepoClassifyResult], threshold: float = 2.0
+) -> dict[str, object]:
     """Transform RepoClassifyResult into template-friendly format."""
     successful_repos = [r for r in repo_results if r.success]
     failed_repos = [r for r in repo_results if not r.success]
@@ -41,6 +46,7 @@ def _prepare_template_data(repo_results: list[RepoClassifyResult]) -> dict[str, 
         "total_prs": total_prs,
         "total_outliers": total_outliers,
         "outlier_rate": (total_outliers / total_prs * 100) if total_prs > 0 else 0,
+        "threshold": threshold,
         "repositories": [_format_repo(r) for r in successful_repos],
         "failed_repositories": failed_repos,
     }
