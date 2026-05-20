@@ -8,7 +8,7 @@ A CLI tool to identify pull request outliers in GitHub repositories using Z-scor
 - **Classify**: Z-score analysis across multiple metrics — additions, deletions, changed files, comments, review duration, code churn, and comment density.
 - **Baseline window**: define a historical measurement period so recent PRs are evaluated against an independent baseline rather than skewing their own statistics.
 - **Primary-branch filter**: focus analysis on PRs that were not merged into the primary branch (e.g. feature-to-feature or abandoned branches).
-- **Flexible output**: view results as a terminal table or export to JSON/CSV.
+- **Flexible output**: view results as a terminal table or export to JSON, CSV, or a standalone [HTML report](HTML_REPORT_USAGE.md).
 - **Deferred output**: when processing multiple repositories, results for all repos are printed together after all processing completes, with a summary of any repos that could not be classified.
 
 ## Installation
@@ -123,7 +123,7 @@ uv run review-classify classify --repo owner/repo --exclude-primary-merged
 | `--config` / `-c` | Path to a TOML config file defining multiple repositories/organizations. |
 | `--threshold` / `-t` | Z-score threshold for flagging an outlier. Default: `2.0`. |
 | `--min-samples` | Minimum number of PRs required for analysis. Default: `30`. |
-| `--format` / `-f` | Output format: `table` (default), `json`, or `csv`. |
+| `--format` / `-f` | Output format: `table` (default), `json`, `csv`, or `html`. See [HTML report usage](HTML_REPORT_USAGE.md). |
 | `--start` | Start of the **statistics baseline** window (YYYY-MM-DD). PRs merged before this date are excluded from the baseline. |
 | `--end` | End of the **statistics baseline** window (YYYY-MM-DD). PRs merged **after** this date are the ones evaluated and reported as outliers. |
 | `--exclude-primary-merged` | Exclude PRs whose base branch is `main` or `master`. |
