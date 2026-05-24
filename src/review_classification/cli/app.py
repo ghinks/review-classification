@@ -50,9 +50,22 @@ def _fetch_repo(
     end_date: str | None,
     reset_db: bool,
     verbose: bool,
+    incremental: bool = False,
 ) -> None:
     """Fetch and store PRs for a single repository."""
     repo = GitHubRepo.from_string(repo_name)
+    full_name = f"{repo.owner}/{repo.name}"
+
+    if incremental and not start_date:
+        from ..sqlite.database import get_latest_pr_date
+
+        latest_date = get_latest_pr_date(full_name)
+        if latest_date:
+            start_date = latest_date.strftime("%Y-%m-%d")
+            if verbose:
+                typer.echo(
+                    f"Incremental fetch: Found latest PR date {start_date} in database."
+                )
 
     if not start_date:
         start_date = (datetime.now(UTC) - timedelta(days=30)).strftime("%Y-%m-%d")
@@ -384,6 +397,14 @@ def fetch(
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Enable verbose output")
     ] = False,
+    incremental: Annotated[
+        bool,
+        typer.Option(
+            "--incremental",
+            "-i",
+            help="Fetch only data created since the most recent PR in the database",
+        ),
+    ] = False,
 ) -> None:
     """Fetch PR data from GitHub and store it locally.
 
@@ -418,6 +439,7 @@ def fetch(
                 target.collate_end,
                 reset_db,
                 verbose,
+                incremental=incremental,
             )
 
     except (FileNotFoundError, ValueError) as e:
