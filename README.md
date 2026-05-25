@@ -90,8 +90,9 @@ uv run review-classify fetch --config config.toml
 | `--repo` / `-r` | GitHub repository (owner/repo). Can be specified multiple times. |
 | `--org` / `-o` | GitHub organization. Fetches all repositories in the org. Can be specified multiple times. |
 | `--config` / `-c` | Path to a TOML config file defining multiple repositories/organizations. |
-| `--collate-start` | Start date for PR collation range (YYYY-MM-DD). Defaults to 30 days ago. |
+| `--collate-start` | Start date for PR collation range (YYYY-MM-DD). Defaults to 30 days ago. Cannot be used with `--incremental`. |
 | `--collate-end` | End date for PR collation range (YYYY-MM-DD). |
+| `--incremental` / `-i` | Fetch only data created since the most recent PR currently stored in the database. Cannot be used with `--collate-start`. |
 | `--reset-db` | Delete all stored data before fetching. |
 | `--verbose` / `-v` | Print progress details. |
 
