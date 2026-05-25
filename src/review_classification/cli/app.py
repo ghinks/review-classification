@@ -56,6 +56,14 @@ def _fetch_repo(
     repo = GitHubRepo.from_string(repo_name)
     full_name = f"{repo.owner}/{repo.name}"
 
+    if incremental and start_date:
+        typer.echo(
+            f"Error: Cannot use both --incremental and a start date "
+            f"(collate-start) for {full_name}.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
     if incremental and not start_date:
         from ..sqlite.database import get_latest_pr_date
 
