@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import text
 from sqlmodel import Session, SQLModel, col, create_engine, delete, select
 
@@ -156,3 +158,26 @@ def get_outlier_scores(
         )
 
         return list(session.exec(statement).all())
+
+
+def get_latest_pr_date(repository_name: str) -> datetime | None:
+    """Get the latest created_at date for a PR in the repository.
+
+    Args:
+        repository_name: The name of the repository (e.g., owner/repo).
+
+    Returns:
+        The latest created_at datetime or None if no PRs are found or table is missing.
+    """
+    from sqlalchemy.exc import OperationalError
+
+    try:
+        with Session(engine) as session:
+            statement = (
+                select(col(PullRequest.created_at))
+                .where(PullRequest.repository_name == repository_name)
+                .order_by(col(PullRequest.created_at).desc())
+            )
+            return session.exec(statement).first()
+    except OperationalError:
+        return None
