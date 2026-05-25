@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-25
+- Update PyPI publish workflow to support major/minor version bumps
+- Merge pull request #58 from ghinks/feature/incremental-fetch
+- Update README to document --incremental flag
+- Reject --incremental when collate-start is provided
+- Reject --incremental flag on initial fetch or empty database
+- feat: implement incremental fetch functionality
+
 ## [0.0.16] - 2026-05-20
 - Merge pull request #57 from ghinks/feat/html-report-generation
 - docs: remove stale suggestions and implementation summary docs

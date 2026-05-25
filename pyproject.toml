@@ -1,6 +1,6 @@
 [project]
 name = "review-classification"
-version = "0.0.16"
+version = "0.1.0"
 description = "CLI tool to identify pull request outliers in GitHub repositories using Z-score analysis"
 readme = "README.md"
 license = {text = "MIT"}
