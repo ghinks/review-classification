@@ -167,12 +167,17 @@ def get_latest_pr_date(repository_name: str) -> datetime | None:
         repository_name: The name of the repository (e.g., owner/repo).
 
     Returns:
-        The latest created_at datetime or None if no PRs are found.
+        The latest created_at datetime or None if no PRs are found or table is missing.
     """
-    with Session(engine) as session:
-        statement = (
-            select(col(PullRequest.created_at))
-            .where(PullRequest.repository_name == repository_name)
-            .order_by(col(PullRequest.created_at).desc())
-        )
-        return session.exec(statement).first()
+    from sqlalchemy.exc import OperationalError
+
+    try:
+        with Session(engine) as session:
+            statement = (
+                select(col(PullRequest.created_at))
+                .where(PullRequest.repository_name == repository_name)
+                .order_by(col(PullRequest.created_at).desc())
+            )
+            return session.exec(statement).first()
+    except OperationalError:
+        return None

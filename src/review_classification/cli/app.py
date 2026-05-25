@@ -66,6 +66,13 @@ def _fetch_repo(
                 typer.echo(
                     f"Incremental fetch: Found latest PR date {start_date} in database."
                 )
+        else:
+            typer.echo(
+                f"Error: Cannot use --incremental for {full_name} "
+                "on an initial fetch or empty database.",
+                err=True,
+            )
+            raise typer.Exit(code=1)
 
     if not start_date:
         start_date = (datetime.now(UTC) - timedelta(days=30)).strftime("%Y-%m-%d")
