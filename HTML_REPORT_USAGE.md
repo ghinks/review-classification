@@ -198,19 +198,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Fetch PR data
         run: |
           review-classify fetch --org my-org \
             --start 2024-03-01 --end 2024-03-31
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Generate HTML report
         run: |
           review-classify classify --org my-org \
             --format html > weekly-report.html
-      
+
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:

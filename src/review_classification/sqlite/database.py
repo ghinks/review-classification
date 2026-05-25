@@ -70,6 +70,54 @@ def save_pr(pr_data: PullRequest) -> PullRequest:
             return pr_data
 
 
+def save_prs_bulk(prs_data: list[PullRequest], batch_size: int = 500) -> None:
+    """Save or update multiple Pull Requests in the database in batches."""
+    if not prs_data:
+        return
+
+    for i in range(0, len(prs_data), batch_size):
+        batch = prs_data[i : i + batch_size]
+        with Session(engine) as session:
+            # Gather unique repo names and PR numbers in this batch
+            repos = {pr.repository_name for pr in batch}
+            numbers = [pr.number for pr in batch]
+
+            # Fetch existing PRs in this batch to update them
+            statement = select(PullRequest).where(
+                col(PullRequest.repository_name).in_(list(repos)),
+                col(PullRequest.number).in_(numbers),
+            )
+            existing_prs = {
+                (pr.repository_name, pr.number): pr
+                for pr in session.exec(statement).all()
+            }
+
+            for pr_data in batch:
+                key = (pr_data.repository_name, pr_data.number)
+                if key in existing_prs:
+                    existing_pr = existing_prs[key]
+                    existing_pr.title = pr_data.title
+                    existing_pr.author = pr_data.author
+                    existing_pr.merged_at = pr_data.merged_at
+                    existing_pr.closed_at = pr_data.closed_at
+                    existing_pr.additions = pr_data.additions
+                    existing_pr.deletions = pr_data.deletions
+                    existing_pr.changed_files = pr_data.changed_files
+                    existing_pr.comments = pr_data.comments
+                    existing_pr.review_comments = pr_data.review_comments
+                    existing_pr.state = pr_data.state
+                    existing_pr.url = pr_data.url
+                    existing_pr.base_branch = pr_data.base_branch
+                    session.add(existing_pr)
+                else:
+                    session.add(pr_data)
+                    # Add to existing_prs to handle potential duplicates
+                    # in the same batch
+                    existing_prs[key] = pr_data
+
+            session.commit()
+
+
 def delete_all_prs() -> None:
     """Delete all Pull Request records from the database."""
     with Session(engine) as session:
@@ -103,6 +151,39 @@ def save_pr_features(features: PRFeatures) -> PRFeatures:
             session.commit()
             session.refresh(features)
             return features
+
+
+def save_pr_features_bulk(
+    session: Session, features_list: list[PRFeatures], batch_size: int = 500
+) -> None:
+    """Save or update multiple PR features in the database using an active session."""
+    if not features_list:
+        return
+
+    for i in range(0, len(features_list), batch_size):
+        batch = features_list[i : i + batch_size]
+        pr_ids = [f.pull_request_id for f in batch]
+
+        # Fetch existing features for these PR IDs
+        statement = select(PRFeatures).where(
+            col(PRFeatures.pull_request_id).in_(pr_ids)
+        )
+        existing_features = {
+            f.pull_request_id: f for f in session.exec(statement).all()
+        }
+
+        for f in batch:
+            if f.pull_request_id in existing_features:
+                existing = existing_features[f.pull_request_id]
+                for key, value in f.model_dump(exclude={"id"}).items():
+                    setattr(existing, key, value)
+                session.add(existing)
+            else:
+                session.add(f)
+                # Keep track to handle potential duplicates in the batch
+                existing_features[f.pull_request_id] = f
+
+        session.commit()
 
 
 def get_pr_features(pr_id: int) -> PRFeatures | None:

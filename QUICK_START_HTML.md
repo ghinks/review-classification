@@ -130,19 +130,19 @@ cp report.html build-artifacts/
 
 ## FAQ
 
-**Q: The report is blank/unstyled**  
+**Q: The report is blank/unstyled**
 A: Make sure you saved it with `.html` extension and opened it in a modern browser (Chrome, Firefox, Safari, Edge).
 
-**Q: Can I edit the HTML?**  
+**Q: Can I edit the HTML?**
 A: Yes! The HTML is a standard file you can edit. CSS styling is embedded, so you can customize colors and fonts.
 
-**Q: How large are the files?**  
+**Q: How large are the files?**
 A: Typical reports are 100–500 KB. Very large organizations might generate 1–5 MB files.
 
-**Q: Can I automate report generation?**  
+**Q: Can I automate report generation?**
 A: Yes! Use cron jobs or CI/CD workflows to generate reports on a schedule.
 
-**Q: What if I have many outliers?**  
+**Q: What if I have many outliers?**
 A: The table will be large but still readable. Consider using narrower date ranges for longer analysis.
 
 ---
