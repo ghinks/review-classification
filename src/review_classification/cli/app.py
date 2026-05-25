@@ -94,7 +94,7 @@ def _fetch_repo(
 
     typer.echo(f"Fetching {repo.owner}/{repo.name}...")
 
-    from ..sqlite.database import delete_all_prs, init_db, save_pr
+    from ..sqlite.database import delete_all_prs, init_db, save_prs_bulk
 
     init_db()
 
@@ -117,8 +117,7 @@ def _fetch_repo(
     prs = fetch_prs(f"{repo.owner}/{repo.name}", start_date, end_date)
 
     typer.echo(f"Saving {len(prs)} PRs to database...")
-    for pr in prs:
-        save_pr(pr)
+    save_prs_bulk(prs)
 
     typer.echo(f"Successfully saved {len(prs)} PRs for {repo.owner}/{repo.name}.")
 
@@ -171,7 +170,7 @@ def _classify_repo(
     )
     from ..analysis.statistics import InsufficientDataError
     from ..features.engineering import create_pr_features
-    from ..sqlite.database import get_session, init_db, save_pr_features
+    from ..sqlite.database import get_session, init_db, save_pr_features_bulk
     from ..sqlite.models import PullRequest
 
     init_db()
@@ -190,10 +189,8 @@ def _classify_repo(
                 error="No PRs found — run 'fetch' command first.",
             )
 
-        for pr in prs:
-            if pr.id is not None:
-                features = create_pr_features(pr)
-                save_pr_features(features)
+        features_list = [create_pr_features(pr) for pr in prs if pr.id is not None]
+        save_pr_features_bulk(session, features_list)
 
         if verbose:
             typer.echo(f"Computed features for {len(prs)} PRs")

@@ -83,3 +83,84 @@ def test_get_repos_for_org_deduplicates(patched_engine: Engine) -> None:
         session.commit()
 
     assert get_repos_for_org("my-org") == ["my-org/repo-a"]
+
+
+def test_save_prs_bulk(patched_engine: Engine) -> None:
+    """save_prs_bulk inserts new PRs and updates existing ones correctly."""
+    from sqlmodel import select
+
+    from review_classification.sqlite.database import save_prs_bulk
+
+    # Batch insert
+    prs = [
+        _make_pr("org/repo", 1),
+        _make_pr("org/repo", 2),
+    ]
+    save_prs_bulk(prs)
+
+    with Session(patched_engine) as session:
+        saved = session.exec(select(PullRequest)).all()
+        assert len(saved) == 2
+        pr1 = next(p for p in saved if p.number == 1)
+        assert pr1.title == "PR 1"
+
+    # Batch update and insert mixed
+    prs_updated = [
+        _make_pr("org/repo", 1),  # Existing
+        _make_pr("org/repo", 3),  # New
+    ]
+    prs_updated[0].title = "Updated Title"
+    save_prs_bulk(prs_updated)
+
+    with Session(patched_engine) as session:
+        saved = session.exec(select(PullRequest)).all()
+        assert len(saved) == 3
+        pr1_updated = next(p for p in saved if p.number == 1)
+        assert pr1_updated.title == "Updated Title"
+        pr3 = next(p for p in saved if p.number == 3)
+        assert pr3.title == "PR 3"
+
+
+def test_save_pr_features_bulk(patched_engine: Engine) -> None:
+    """save_pr_features_bulk inserts and updates PRFeatures using the active session."""
+    from sqlmodel import select
+
+    from review_classification.sqlite.database import (
+        save_pr_features_bulk,
+        save_prs_bulk,
+    )
+    from review_classification.sqlite.models import PRFeatures
+
+    # Insert some PRs to associate features with
+    prs = [
+        _make_pr("org/repo", 1),
+        _make_pr("org/repo", 2),
+    ]
+    save_prs_bulk(prs)
+
+    with Session(patched_engine) as session:
+        db_prs = session.exec(select(PullRequest)).all()
+        pr1 = next(p for p in db_prs if p.number == 1)
+        pr2 = next(p for p in db_prs if p.number == 2)
+
+        features1 = PRFeatures(pull_request_id=pr1.id, code_churn=100)
+        features2 = PRFeatures(pull_request_id=pr2.id, code_churn=200)
+
+        # Batch insert
+        save_pr_features_bulk(session, [features1, features2])
+
+        # Verify inserted
+        saved = session.exec(select(PRFeatures)).all()
+        assert len(saved) == 2
+        f1 = next(f for f in saved if f.pull_request_id == pr1.id)
+        assert f1.code_churn == 100
+
+        # Batch update
+        features1_updated = PRFeatures(pull_request_id=pr1.id, code_churn=150)
+        save_pr_features_bulk(session, [features1_updated])
+
+        session.expire_all()
+        f1_updated = session.exec(
+            select(PRFeatures).where(PRFeatures.pull_request_id == pr1.id)
+        ).one()
+        assert f1_updated.code_churn == 150

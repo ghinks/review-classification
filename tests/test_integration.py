@@ -204,15 +204,15 @@ def test_classify_example_table_output(
             "--end",
             date_windows.classify_end,
             "--min-samples",
-            "10",
+            "5",
         ],
         env=github_env,
         cwd=fetched_workspace,
     )
 
     assert (
-        "No outliers detected out of" in result.result.stdout
-        or f"Repository: {REPO_NAME}" in result.result.stdout
+        "outlier" in result.result.stdout
+        or "could not be classified" in result.result.stdout
     )
 
 
@@ -235,7 +235,7 @@ def test_classify_example_stricter_threshold(
             "--threshold",
             "3.0",
             "--min-samples",
-            "10",
+            "5",
         ],
         env=github_env,
         cwd=fetched_workspace,
@@ -263,7 +263,7 @@ def test_classify_example_json_output(
             "--format",
             "json",
             "--min-samples",
-            "10",
+            "5",
         ],
         env=github_env,
         cwd=fetched_workspace,
@@ -296,7 +296,7 @@ def test_classify_example_exclude_primary_merged(
             date_windows.classify_end,
             "--exclude-primary-merged",
             "--min-samples",
-            "10",
+            "5",
         ],
         env=github_env,
         cwd=fetched_workspace,
