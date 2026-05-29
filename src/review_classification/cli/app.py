@@ -51,6 +51,7 @@ def _fetch_repo(
     reset_db: bool,
     verbose: bool,
     incremental: bool = False,
+    skip_empty_incremental: bool = False,
 ) -> None:
     """Fetch and store PRs for a single repository."""
     repo = GitHubRepo.from_string(repo_name)
@@ -75,6 +76,13 @@ def _fetch_repo(
                     f"Incremental fetch: Found latest PR date {start_date} in database."
                 )
         else:
+            if skip_empty_incremental:
+                typer.echo(
+                    f"Skipping {full_name}: no existing PR data found for "
+                    "incremental fetch.",
+                    err=True,
+                )
+                return
             typer.echo(
                 f"Error: Cannot use --incremental for {full_name} "
                 "on an initial fetch or empty database.",
@@ -307,6 +315,7 @@ def _resolve_targets(
                     # Create a RepoConfig inheriting from org_cfg, then global
                     rc = RepoConfig(
                         name=r,
+                        from_organization=True,
                         collate_start=(
                             org_cfg.collate_start
                             if org_cfg.collate_start is not None
@@ -353,6 +362,7 @@ def _resolve_targets(
         for r in org_repos:
             rc = RepoConfig(
                 name=r,
+                from_organization=True,
                 collate_start=default_collate_start,
                 collate_end=default_collate_end,
                 threshold=default_threshold,
@@ -456,6 +466,7 @@ def fetch(
                 reset_db,
                 verbose,
                 incremental=incremental,
+                skip_empty_incremental=target.from_organization,
             )
 
     except (FileNotFoundError, ValueError) as e:
