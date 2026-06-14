@@ -16,6 +16,7 @@ class RepoConfig:
     min_samples: int | None = None
     start: str | None = None
     end: str | None = None
+    from_organization: bool = False
 
 
 @dataclass
@@ -63,6 +64,7 @@ class MultiRepoConfig:
         """
         return RepoConfig(
             name=repo.name,
+            from_organization=repo.from_organization,
             collate_start=(
                 repo.collate_start
                 if repo.collate_start is not None
