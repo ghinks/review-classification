@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-14
+- Merge pull request #61 from ghinks/fix/skip-empty-org-incremental-repos
+- fix(cli): skip empty org repos during incremental fetch
+- Merge pull request #60 from ghinks/feat/skill_pr_branch
+- feat(skills): add branching and pr creation guidelines
+
 ## [0.1.0] - 2026-05-25
 - Update PyPI publish workflow to support major/minor version bumps
 - Merge pull request #58 from ghinks/feature/incremental-fetch
