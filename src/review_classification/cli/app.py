@@ -570,6 +570,16 @@ def classify(
         )
         raise typer.Exit(code=1)
 
+    from ..sqlite.database import database_is_initialized
+
+    if not database_is_initialized():
+        typer.echo(
+            "Error: No database found. Run 'review-classify fetch' first "
+            "to collect PR data.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
     try:
         targets = _resolve_targets(
             repos=repo_list,

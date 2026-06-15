@@ -1,6 +1,7 @@
 """Tests for sqlite.database helper functions."""
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from sqlalchemy.engine import Engine
@@ -83,3 +84,57 @@ def test_get_repos_for_org_deduplicates(patched_engine: Engine) -> None:
         session.commit()
 
     assert get_repos_for_org("my-org") == ["my-org/repo-a"]
+
+
+def test_get_repos_for_org_handles_missing_table(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Returns [] instead of raising when the database has no tables yet."""
+    import review_classification.sqlite.database as db_module
+
+    # Engine pointing at an in-memory DB with no tables created.
+    empty_engine = create_engine("sqlite:///:memory:")
+    monkeypatch.setattr(db_module, "engine", empty_engine)
+
+    assert db_module.get_repos_for_org("any-org") == []
+
+
+def test_database_is_initialized_false_when_file_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """No database file on disk → not initialized (and no file is created)."""
+    import review_classification.sqlite.database as db_module
+
+    monkeypatch.chdir(tmp_path)
+    assert db_module.database_is_initialized() is False
+    # The check must not lazily create an empty database file.
+    assert not (tmp_path / db_module.sqlite_file_name).exists()
+
+
+def test_database_is_initialized_false_for_empty_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A bare file with no tables (failed earlier run) counts as not initialized."""
+    import review_classification.sqlite.database as db_module
+
+    monkeypatch.chdir(tmp_path)
+    db_path = tmp_path / db_module.sqlite_file_name
+    db_path.touch()  # empty SQLite file, no tables
+    monkeypatch.setattr(db_module, "engine", create_engine(f"sqlite:///{db_path}"))
+
+    assert db_module.database_is_initialized() is False
+
+
+def test_database_is_initialized_true_with_tables(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A file containing the expected tables counts as initialized."""
+    import review_classification.sqlite.database as db_module
+
+    monkeypatch.chdir(tmp_path)
+    db_path = tmp_path / db_module.sqlite_file_name
+    engine = create_engine(f"sqlite:///{db_path}")
+    SQLModel.metadata.create_all(engine)
+    monkeypatch.setattr(db_module, "engine", engine)
+
+    assert db_module.database_is_initialized() is True

@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from sqlalchemy import text
@@ -10,6 +11,26 @@ sqlite_file_name = "review_classification.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 engine = create_engine(sqlite_url)
+
+
+def database_is_initialized() -> bool:
+    """Return True if the database file exists and contains the PR table.
+
+    A bare file with no tables (e.g. left behind by an earlier failed run)
+    counts as *not* initialized, so callers can prompt the user to run
+    ``fetch`` first instead of producing an empty report. The on-disk check
+    runs first to avoid lazily creating an empty database file.
+    """
+    from sqlalchemy import inspect
+    from sqlalchemy.exc import OperationalError
+
+    if not os.path.exists(sqlite_file_name):
+        return False
+
+    try:
+        return inspect(engine).has_table(str(PullRequest.__tablename__))
+    except OperationalError:
+        return False
 
 
 def init_db() -> None:
@@ -123,14 +144,20 @@ def get_repos_for_org(org_name: str) -> list[str]:
     """Return distinct repository names stored in the DB for the given org/owner.
 
     Avoids any network call — resolves org repos entirely from fetched data.
+    Returns an empty list if the database has not been initialized yet.
     """
-    with Session(engine) as session:
-        statement = (
-            select(col(PullRequest.repository_name))
-            .where(col(PullRequest.repository_name).like(f"{org_name}/%"))
-            .distinct()
-        )
-        return sorted(session.exec(statement).all())
+    from sqlalchemy.exc import OperationalError
+
+    try:
+        with Session(engine) as session:
+            statement = (
+                select(col(PullRequest.repository_name))
+                .where(col(PullRequest.repository_name).like(f"{org_name}/%"))
+                .distinct()
+            )
+            return sorted(session.exec(statement).all())
+    except OperationalError:
+        return []
 
 
 def get_outlier_scores(
