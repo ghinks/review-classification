@@ -99,14 +99,42 @@ def test_get_repos_for_org_handles_missing_table(
     assert db_module.get_repos_for_org("any-org") == []
 
 
-def test_database_exists_reflects_file_presence(
+def test_database_is_initialized_false_when_file_missing(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """database_exists() tracks whether the SQLite file is on disk."""
-    from review_classification.sqlite.database import database_exists, sqlite_file_name
+    """No database file on disk → not initialized (and no file is created)."""
+    import review_classification.sqlite.database as db_module
 
     monkeypatch.chdir(tmp_path)
-    assert database_exists() is False
+    assert db_module.database_is_initialized() is False
+    # The check must not lazily create an empty database file.
+    assert not (tmp_path / db_module.sqlite_file_name).exists()
 
-    (tmp_path / sqlite_file_name).touch()
-    assert database_exists() is True
+
+def test_database_is_initialized_false_for_empty_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A bare file with no tables (failed earlier run) counts as not initialized."""
+    import review_classification.sqlite.database as db_module
+
+    monkeypatch.chdir(tmp_path)
+    db_path = tmp_path / db_module.sqlite_file_name
+    db_path.touch()  # empty SQLite file, no tables
+    monkeypatch.setattr(db_module, "engine", create_engine(f"sqlite:///{db_path}"))
+
+    assert db_module.database_is_initialized() is False
+
+
+def test_database_is_initialized_true_with_tables(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A file containing the expected tables counts as initialized."""
+    import review_classification.sqlite.database as db_module
+
+    monkeypatch.chdir(tmp_path)
+    db_path = tmp_path / db_module.sqlite_file_name
+    engine = create_engine(f"sqlite:///{db_path}")
+    SQLModel.metadata.create_all(engine)
+    monkeypatch.setattr(db_module, "engine", engine)
+
+    assert db_module.database_is_initialized() is True

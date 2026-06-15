@@ -13,9 +13,24 @@ sqlite_url = f"sqlite:///{sqlite_file_name}"
 engine = create_engine(sqlite_url)
 
 
-def database_exists() -> bool:
-    """Return True if the SQLite database file exists on disk."""
-    return os.path.exists(sqlite_file_name)
+def database_is_initialized() -> bool:
+    """Return True if the database file exists and contains the PR table.
+
+    A bare file with no tables (e.g. left behind by an earlier failed run)
+    counts as *not* initialized, so callers can prompt the user to run
+    ``fetch`` first instead of producing an empty report. The on-disk check
+    runs first to avoid lazily creating an empty database file.
+    """
+    from sqlalchemy import inspect
+    from sqlalchemy.exc import OperationalError
+
+    if not os.path.exists(sqlite_file_name):
+        return False
+
+    try:
+        return inspect(engine).has_table(str(PullRequest.__tablename__))
+    except OperationalError:
+        return False
 
 
 def init_db() -> None:
