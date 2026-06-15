@@ -1,6 +1,7 @@
 """Tests for sqlite.database helper functions."""
 
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from sqlalchemy.engine import Engine
@@ -83,3 +84,29 @@ def test_get_repos_for_org_deduplicates(patched_engine: Engine) -> None:
         session.commit()
 
     assert get_repos_for_org("my-org") == ["my-org/repo-a"]
+
+
+def test_get_repos_for_org_handles_missing_table(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Returns [] instead of raising when the database has no tables yet."""
+    import review_classification.sqlite.database as db_module
+
+    # Engine pointing at an in-memory DB with no tables created.
+    empty_engine = create_engine("sqlite:///:memory:")
+    monkeypatch.setattr(db_module, "engine", empty_engine)
+
+    assert db_module.get_repos_for_org("any-org") == []
+
+
+def test_database_exists_reflects_file_presence(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """database_exists() tracks whether the SQLite file is on disk."""
+    from review_classification.sqlite.database import database_exists, sqlite_file_name
+
+    monkeypatch.chdir(tmp_path)
+    assert database_exists() is False
+
+    (tmp_path / sqlite_file_name).touch()
+    assert database_exists() is True
