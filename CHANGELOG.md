@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-01
+- Merge pull request #66 from ghinks/dependabot/pip/uv-build-gte-0.9.18-and-lt-0.14.0
+- chore(deps-dev): update uv-build requirement
+- Merge pull request #63 from ghinks/fix/classify-missing-db-graceful-error
+- fix(cli): treat uninitialized database as not present in classify guard
+- fix(cli): handle missing database gracefully during classify
+
 ## [0.1.1] - 2026-06-14
 - Merge pull request #61 from ghinks/fix/skip-empty-org-incremental-repos
 - fix(cli): skip empty org repos during incremental fetch
